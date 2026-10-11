@@ -1,8 +1,9 @@
+
 require("dotenv").config(); 
 
 const express = require("express");
 const app = express();
-
+const authenticate = require("./middleware/auth");
 
 const PORT = process.env.PORT || 3000;
 
@@ -21,6 +22,12 @@ app.get("/health", (req, res) => {
   });
 });
 
+app.get("/api/test", authenticate, (req, res) => {
+  res.json({
+    success: true,
+    message: "Authentication successful",
+  });
+});
 
 
 
