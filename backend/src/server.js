@@ -15,7 +15,7 @@ app.use(express.json({ limit: "10kb" }));
 app.get("/health", (req, res) => {
   res.status(200).json({
     success: true,
-    message: "DeskPilot server is running",
+    message: "DeskPilot server is Running",
     status: "online",
     timestamp: new Date().toISOString(),
   });
