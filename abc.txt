@@ -1,4 +1,4 @@
-
+           /  /add apps   
 $token = "k8Xv2Pq9sL4mZ1wY6vB3nC8dF5gJ0hR2tX7yZ4mP9wQ="
 
 $body = @{
@@ -12,3 +12,20 @@ Invoke-RestMethod `
   -Headers @{ Authorization = "Bearer $token" } `
   -ContentType "application/json" `
   -Body $body
+
+
+
+//check apps
+
+  Invoke-RestMethod `
+  -Uri "http://localhost:3000/api/apps" `
+  -Headers @{ Authorization = "Bearer $token" }
+
+
+
+  $id = "09231162-d9bc-4298-9383-2193c4a515e9"
+
+Invoke-RestMethod `
+  -Uri "http://localhost:3000/api/apps/$id/launch" `
+  -Method Post `
+  -Headers @{ Authorization = "Bearer $token" }
