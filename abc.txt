@@ -1,11 +1,13 @@
-           /  /add apps   
-$token = "k8Xv2Pq9sL4mZ1wY6vB3nC8dF5gJ0hR2tX7yZ4mP9wQ="
+           //--------------add apps--------------------   
+$token = "pQahepv9dIrIPyFU0wzAbbr5xXqqUwuuLYPoBfqb2mlPtQvDSkdDmstXow0XI5rk"
 
 $body = @{
   name = "Notepad"
   executablePath = "C:\Windows\System32\notepad.exe"
 } | ConvertTo-Json
 
+
+//-------------------------------------------------------------------
 Invoke-RestMethod `
   -Uri "http://localhost:3000/api/apps" `
   -Method Post `
@@ -15,7 +17,7 @@ Invoke-RestMethod `
 
 
 
-//check apps
+//------------check apps---------------
 
   Invoke-RestMethod `
   -Uri "http://localhost:3000/api/apps" `
@@ -23,9 +25,24 @@ Invoke-RestMethod `
 
 
 
-  $id = "09231162-d9bc-4298-9383-2193c4a515e9"
+
+//--------open app---------------
+
+  $id = "30539ebe-90e4-426e-ad6b-4b0a5519d1c6"
 
 Invoke-RestMethod `
   -Uri "http://localhost:3000/api/apps/$id/launch" `
   -Method Post `
+  -Headers @{ Authorization = "Bearer $token" }
+
+
+
+
+  //delete app 
+
+  $appId = "PASTE_NOTEPAD_APP_ID_HERE"
+
+Invoke-RestMethod `
+  -Uri "http://localhost:3000/api/apps/$appId" `
+  -Method Delete `
   -Headers @{ Authorization = "Bearer $token" }
