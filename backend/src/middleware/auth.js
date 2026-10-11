@@ -12,7 +12,7 @@ function authenticate(req, res, next) {
     if (authHeader !== `Bearer ${expectedToken}`) {
     return res.status(401).json({
       success: false,
-      message: "Unauthorized: Invalid or missing token",
+      message: "Unauthorized: Invalid or missing tokens",
     });
   }
 
