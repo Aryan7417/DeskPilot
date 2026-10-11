@@ -5,7 +5,8 @@ const authenticate = require("../middleware/auth")
 const {
   getApps,
   addApp,
-  launchApp
+  launchApp,
+  deleteApp
 } = require("../controllers/app.controller");
 
 
@@ -13,6 +14,7 @@ const {
 router.get("/", authenticate, getApps);
 router.post("/", authenticate, addApp);
 router.post("/:id/launch", authenticate, launchApp);
+router.delete("/:id", authenticate, deleteApp);
 
 
 module.exports = router;

@@ -35,7 +35,7 @@ function addApp(req, res) {
       message: "Valid app name and absolute executable path are required",
     });
   }
-    const apps = readApps();
+  const apps = readApps();
 
   const app = {
     id: crypto.randomUUID(),
@@ -44,7 +44,7 @@ function addApp(req, res) {
   };
 
 
-    apps.push(app);
+  apps.push(app);
   saveApps(apps);
 
   res.status(201).json({
@@ -53,6 +53,8 @@ function addApp(req, res) {
     app,
   });
 }
+
+
 
 
 
@@ -81,15 +83,18 @@ function launchApp(req, res) {
       });
     }
 
-    const child = spawn(app.executablePath, [], {
-  shell: false,
-  detached: true,
-  stdio: "ignore",
-})
+    console.log("Launching app:", app.name);
+    console.log("Executable:", app.executablePath);
 
+    const child = spawn(app.executablePath, [], {
+      shell: false,
+      detached: true,
+      stdio: "ignore",
+      windowsHide: false,
+    });
 
     child.once("error", (error) => {
-      console.error("App launch failed:", error.message);
+      console.error("Launch error:", error.message);
 
       if (!res.headersSent) {
         res.status(500).json({
@@ -99,20 +104,27 @@ function launchApp(req, res) {
       }
     });
 
-       child.once("spawn", () => {
-      res.status(200).json({
-        success: true,
-        message: `${app.name} launch requested`,
-        app: {
-          id: app.id,
-          name: app.name,
-        },
-      })
-       child.unref();
+    child.once("spawn", () => {
+      console.log("Process started. PID:", child.pid);
+
+      if (!res.headersSent) {
+        res.status(200).json({
+          success: true,
+          message: `${app.name} launch requested`,
+          app: {
+            id: app.id,
+            name: app.name,
+          },
+        });
+      }
+
+      child.unref();
     });
 
-
-      } catch (error) {
+    child.once("exit", (code, signal) => {
+      console.log("Process exited:", { code, signal });
+    });
+  } catch (error) {
     console.error("Launch error:", error.message);
 
     if (!res.headersSent) {
@@ -124,6 +136,43 @@ function launchApp(req, res) {
   }
 }
 
+function deleteApp(req, res) {
+   try {
+    const apps = readApps();
+    const appIndex = apps.findIndex(
+      (item) => item.id === req.params.id
+    );
+
+    if (appIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: "Application not found",
+      });
+    }
+
+    const deletedApp = apps[appIndex];
 
 
-module.exports = { getApps, addApp,launchApp };
+      apps.splice(appIndex, 1);
+    saveApps(apps);
+
+
+      return res.json({
+      success: true,
+      message: "Application deleted successfully",
+      app: {
+        id: deletedApp.id,
+        name: deletedApp.name,
+      },
+    });
+    } catch (error) {
+    console.error("Delete error:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Could not delete application",
+    });
+  }
+}
+
+module.exports = { getApps, addApp, launchApp,deleteApp };
