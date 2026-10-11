@@ -4,11 +4,13 @@ require("dotenv").config();
 const express = require("express");
 const app = express();
 const authenticate = require("./middleware/auth");
+const appRoutes = require("./routes/app.routes");
 
 const PORT = process.env.PORT || 3000;
 
 
 app.use(express.json({ limit: "10kb" }));
+app.use("/api/apps", appRoutes);
 
 
 
@@ -38,6 +40,9 @@ app.use((err, req, res, next) => {
       message: "Invalid JSON body",
     });
   }
+
+
+
 
   console.error("Server error:", err.message);
 

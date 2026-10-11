@@ -1,0 +1,14 @@
+
+$token = "k8Xv2Pq9sL4mZ1wY6vB3nC8dF5gJ0hR2tX7yZ4mP9wQ="
+
+$body = @{
+  name = "Notepad"
+  executablePath = "C:\Windows\System32\notepad.exe"
+} | ConvertTo-Json
+
+Invoke-RestMethod `
+  -Uri "http://localhost:3000/api/apps" `
+  -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType "application/json" `
+  -Body $body

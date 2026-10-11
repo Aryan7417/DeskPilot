@@ -1,1 +1,7 @@
-[]
+[
+  {
+    "id": "09231162-d9bc-4298-9383-2193c4a515e9",
+    "name": "Notepad",
+    "executablePath": "C:\\Windows\\System32\\notepad.exe"
+  }
+]
