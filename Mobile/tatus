@@ -1,0 +1,138 @@
+warning: in the working copy of 'src/app/_layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/index.tsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/src/app/_layout.tsx b/src/app/_layout.tsx[m
+[1mindex b3fd50c..d2a8b0b 100644[m
+[1m--- a/src/app/_layout.tsx[m
+[1m+++ b/src/app/_layout.tsx[m
+[36m@@ -1,18 +1,5 @@[m
+[31m-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';[m
+[31m-import * as SplashScreen from 'expo-splash-screen';[m
+[31m-import { useColorScheme } from 'react-native';[m
+[32m+[m[32mimport { Stack } from "expo-router";[m
+ [m
+[31m-import { AnimatedSplashOverlay } from '@/components/animated-icon';[m
+[31m-import AppTabs from '@/components/app-tabs';[m
+[31m-[m
+[31m-SplashScreen.preventAutoHideAsync();[m
+[31m-[m
+[31m-export default function TabLayout() {[m
+[31m-  const colorScheme = useColorScheme();[m
+[31m-  return ([m
+[31m-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>[m
+[31m-      <AnimatedSplashOverlay />[m
+[31m-      <AppTabs />[m
+[31m-    </ThemeProvider>[m
+[31m-  );[m
+[32m+[m[32mexport default function RootLayout() {[m
+[32m+[m[32m  return <Stack />;[m
+ }[m
+[1mdiff --git a/src/app/index.tsx b/src/app/index.tsx[m
+[1mindex 8ec3e6f..5f98550 100644[m
+[1m--- a/src/app/index.tsx[m
+[1m+++ b/src/app/index.tsx[m
+[36m@@ -1,98 +1,17 @@[m
+[31m-import * as Device from 'expo-device';[m
+[31m-import { Platform, StyleSheet } from 'react-native';[m
+[31m-import { SafeAreaView } from 'react-native-safe-area-context';[m
+[32m+[m[32mimport { Text, View, StyleSheet } from "react-native";[m
+ [m
+[31m-import { AnimatedIcon } from '@/components/animated-icon';[m
+[31m-import { HintRow } from '@/components/hint-row';[m
+[31m-import { ThemedText } from '@/components/themed-text';[m
+[31m-import { ThemedView } from '@/components/themed-view';[m
+[31m-import { WebBadge } from '@/components/web-badge';[m
+[31m-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';[m
+[31m-[m
+[31m-function getDevMenuHint() {[m
+[31m-  if (Platform.OS === 'web') {[m
+[31m-    return <ThemedText type="small">use browser devtools</ThemedText>;[m
+[31m-  }[m
+[31m-  if (Device.isDevice) {[m
+[31m-    return ([m
+[31m-      <ThemedText type="small">[m
+[31m-        shake device or press <ThemedText type="code">m</ThemedText> in terminal[m
+[31m-      </ThemedText>[m
+[31m-    );[m
+[31m-  }[m
+[31m-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';[m
+[31m-  return ([m
+[31m-    <ThemedText type="small">[m
+[31m-      press <ThemedText type="code">{shortcut}</ThemedText>[m
+[31m-    </ThemedText>[m
+[31m-  );[m
+[31m-}[m
+[31m-[m
+[31m-export default function HomeScreen() {[m
+[32m+[m[32mexport default function Index() {[m
+   return ([m
+[31m-    <ThemedView style={styles.container}>[m
+[31m-      <SafeAreaView style={styles.safeArea}>[m
+[31m-        <ThemedView style={styles.heroSection}>[m
+[31m-          <AnimatedIcon />[m
+[31m-          <ThemedText type="title" style={styles.title}>[m
+[31m-            Welcome to&nbsp;Expo[m
+[31m-          </ThemedText>[m
+[31m-        </ThemedView>[m
+[31m-[m
+[31m-        <ThemedText type="code" style={styles.code}>[m
+[31m-          get started[m
+[31m-        </ThemedText>[m
+[31m-[m
+[31m-        <ThemedView type="backgroundElement" style={styles.stepContainer}>[m
+[31m-          <HintRow[m
+[31m-            title="Try editing"[m
+[31m-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}[m
+[31m-          />[m
+[31m-          <HintRow title="Dev tools" hint={getDevMenuHint()} />[m
+[31m-          <HintRow[m
+[31m-            title="Fresh start"[m
+[31m-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}[m
+[31m-          />[m
+[31m-        </ThemedView>[m
+[31m-[m
+[31m-        {Platform.OS === 'web' && <WebBadge />}[m
+[31m-      </SafeAreaView>[m
+[31m-    </ThemedView>[m
+[32m+[m[32m    <View style={styles.container}>[m
+[32m+[m[32m      <Text>Edit src/app/index.tsx to edit this screen.</Text>[m
+[32m+[m[32m    </View>[m
+   );[m
+ }[m
+ [m
+ const styles = StyleSheet.create({[m
+   container: {[m
+     flex: 1,[m
+[31m-    justifyContent: 'center',[m
+[31m-    flexDirection: 'row',[m
+[31m-  },[m
+[31m-  safeArea: {[m
+[31m-    flex: 1,[m
+[31m-    paddingHorizontal: Spacing.four,[m
+[31m-    alignItems: 'center',[m
+[31m-    gap: Spacing.three,[m
+[31m-    paddingBottom: BottomTabInset + Spacing.three,[m
+[31m-    maxWidth: MaxContentWidth,[m
+[31m-  },[m
+[31m-  heroSection: {[m
+[31m-    alignItems: 'center',[m
+[31m-    justifyContent: 'center',[m
+[31m-    flex: 1,[m
+[31m-    paddingHorizontal: Spacing.four,[m
+[31m-    gap: Spacing.four,[m
+[31m-  },[m
+[31m-  title: {[m
+[31m-    textAlign: 'center',[m
+[31m-  },[m
+[31m-  code: {[m
+[31m-    textTransform: 'uppercase',[m
+[31m-  },[m
+[31m-  stepContainer: {[m
+[31m-    gap: Spacing.three,[m
+[31m-    alignSelf: 'stretch',[m
+[31m-    paddingHorizontal: Spacing.three,[m
+[31m-    paddingVertical: Spacing.four,[m
+[31m-    borderRadius: Spacing.four,[m
+[32m+[m[32m    alignItems: "center",[m
+[32m+[m[32m    justifyContent: "center",[m
+   },[m
+ });[m
