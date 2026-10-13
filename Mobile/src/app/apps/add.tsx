@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { addApp } from "../services/app.service";
+import { addApp } from "../../services/app.service";
 import {
     View,
     Text,
