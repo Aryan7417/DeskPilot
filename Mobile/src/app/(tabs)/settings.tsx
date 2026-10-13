@@ -1,5 +1,12 @@
 
-import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  ScrollView,
+  Alert,
+} from "react-native";
 import { router } from "expo-router";
 
 const C = {
@@ -9,6 +16,7 @@ const C = {
   purple: "#7785FF",
   white: "#F5F7FA",
   muted: "#9299AA",
+  red: "#FF718B",
 };
 
 function SettingRow({
@@ -23,29 +31,63 @@ function SettingRow({
   onPress?: () => void;
 }) {
   return (
-    <Pressable style={s.row} onPress={onPress}>
+    <Pressable
+      style={({ pressed }) => [
+        s.row,
+        pressed && s.pressed,
+      ]}
+      onPress={onPress}
+    >
       <View style={s.rowIcon}>
         <Text style={s.iconText}>{icon}</Text>
       </View>
+
       <View style={s.rowInfo}>
         <Text style={s.rowTitle}>{title}</Text>
         <Text style={s.rowSubtitle}>{subtitle}</Text>
       </View>
+
       <Text style={s.arrow}>›</Text>
     </Pressable>
   );
 }
 
 export default function SettingsScreen() {
+  const handleLogout = () => {
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to lock DeskPilot?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Logout",
+          style: "destructive",
+          onPress: () => router.replace("/"),
+        },
+      ]
+    );
+  };
+
   return (
-    <ScrollView style={s.screen} contentContainerStyle={s.content}>
+    <ScrollView
+      style={s.screen}
+      contentContainerStyle={s.content}
+      showsVerticalScrollIndicator={false}
+    >
       <Text style={s.eyebrow}>PREFERENCES</Text>
+
       <Text style={s.title}>Settings</Text>
+
       <Text style={s.subtitle}>
         Make DeskPilot work the way you like.
       </Text>
 
+      {/* CONNECTION */}
       <Text style={s.section}>CONNECTION</Text>
+
       <View style={s.group}>
         <SettingRow
           icon="⌁"
@@ -55,7 +97,9 @@ export default function SettingsScreen() {
         />
       </View>
 
+      {/* SECURITY */}
       <Text style={s.section}>SECURITY</Text>
+
       <View style={s.group}>
         <SettingRow
           icon="▣"
@@ -63,7 +107,9 @@ export default function SettingsScreen() {
           subtitle="Update your app access PIN"
           onPress={() => router.push("/change-pin")}
         />
+
         <View style={s.divider} />
+
         <SettingRow
           icon="◇"
           title="Privacy & security"
@@ -72,7 +118,9 @@ export default function SettingsScreen() {
         />
       </View>
 
+      {/* ABOUT */}
       <Text style={s.section}>ABOUT</Text>
+
       <View style={s.group}>
         <SettingRow
           icon="ⓘ"
@@ -82,13 +130,35 @@ export default function SettingsScreen() {
         />
       </View>
 
+      {/* APP VERSION */}
       <View style={s.versionCard}>
         <View style={s.logo}>
           <Text style={s.logoText}>D</Text>
         </View>
+
         <Text style={s.appName}>DeskPilot</Text>
-        <Text style={s.version}>Version 1.0.0 • UI Preview</Text>
+
+        <Text style={s.version}>
+          Version 1.0.0 • UI Preview
+        </Text>
       </View>
+
+      {/* LOGOUT BUTTON */}
+      <Pressable
+        style={({ pressed }) => [
+          s.logoutButton,
+          pressed && s.pressed,
+        ]}
+        onPress={handleLogout}
+      >
+        <Text style={s.logoutIcon}>↪</Text>
+
+        <Text style={s.logoutText}>Logout</Text>
+      </Pressable>
+
+      <Text style={s.logoutHint}>
+        Lock your DeskPilot app
+      </Text>
 
       <Text style={s.footer}>
         DESKPILOT • YOUR LAPTOP, UNDER YOUR CONTROL
@@ -98,25 +168,181 @@ export default function SettingsScreen() {
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 22, paddingTop: 32, paddingBottom: 35 },
-  eyebrow: { color: C.purple, fontSize: 10, fontWeight: "800", letterSpacing: 2 },
-  title: { color: C.white, fontSize: 30, fontWeight: "800", marginTop: 9 },
-  subtitle: { color: C.muted, fontSize: 13, lineHeight: 21, marginTop: 8, marginBottom: 28 },
-  section: { color: C.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1.4, marginBottom: 11, marginTop: 22 },
-  group: { backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: 16, paddingHorizontal: 13 },
-  row: { flexDirection: "row", alignItems: "center", paddingVertical: 15 },
-  rowIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: "#252A46", alignItems: "center", justifyContent: "center", marginRight: 12 },
-  iconText: { color: C.purple, fontSize: 20 },
-  rowInfo: { flex: 1 },
-  rowTitle: { color: C.white, fontSize: 13, fontWeight: "700" },
-  rowSubtitle: { color: C.muted, fontSize: 10, marginTop: 5 },
-  arrow: { color: C.muted, fontSize: 25, marginLeft: 8 },
-  divider: { height: 1, backgroundColor: C.border },
-  versionCard: { alignItems: "center", paddingVertical: 28, marginTop: 18 },
-  logo: { width: 48, height: 48, borderRadius: 15, backgroundColor: "#252A46", borderWidth: 1, borderColor: "#454D7C", alignItems: "center", justifyContent: "center" },
-  logoText: { color: C.purple, fontSize: 25, fontWeight: "900" },
-  appName: { color: C.white, fontSize: 15, fontWeight: "800", marginTop: 12 },
-  version: { color: C.muted, fontSize: 10, marginTop: 6 },
-  footer: { color: "#596174", fontSize: 8, letterSpacing: 1, textAlign: "center", marginTop: 10 },
+  screen: {
+    flex: 1,
+    backgroundColor: C.bg,
+  },
+
+  content: {
+    padding: 22,
+    paddingTop: 32,
+    paddingBottom: 35,
+  },
+
+  eyebrow: {
+    color: C.purple,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 2,
+  },
+
+  title: {
+    color: C.white,
+    fontSize: 30,
+    fontWeight: "800",
+    marginTop: 9,
+  },
+
+  subtitle: {
+    color: C.muted,
+    fontSize: 13,
+    lineHeight: 21,
+    marginTop: 8,
+    marginBottom: 28,
+  },
+
+  section: {
+    color: C.muted,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.4,
+    marginBottom: 11,
+    marginTop: 22,
+  },
+
+  group: {
+    backgroundColor: C.card,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 16,
+    paddingHorizontal: 13,
+  },
+
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 15,
+  },
+
+  pressed: {
+    opacity: 0.7,
+  },
+
+  rowIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#252A46",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+
+  iconText: {
+    color: C.purple,
+    fontSize: 20,
+  },
+
+  rowInfo: {
+    flex: 1,
+  },
+
+  rowTitle: {
+    color: C.white,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
+  rowSubtitle: {
+    color: C.muted,
+    fontSize: 10,
+    marginTop: 5,
+  },
+
+  arrow: {
+    color: C.muted,
+    fontSize: 25,
+    marginLeft: 8,
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: C.border,
+  },
+
+  versionCard: {
+    alignItems: "center",
+    paddingVertical: 28,
+    marginTop: 18,
+  },
+
+  logo: {
+    width: 48,
+    height: 48,
+    borderRadius: 15,
+    backgroundColor: "#252A46",
+    borderWidth: 1,
+    borderColor: "#454D7C",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  logoText: {
+    color: C.purple,
+    fontSize: 25,
+    fontWeight: "900",
+  },
+
+  appName: {
+    color: C.white,
+    fontSize: 15,
+    fontWeight: "800",
+    marginTop: 12,
+  },
+
+  version: {
+    color: C.muted,
+    fontSize: 10,
+    marginTop: 6,
+  },
+
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#291A22",
+    borderWidth: 1,
+    borderColor: "#56303D",
+    borderRadius: 14,
+    paddingVertical: 15,
+    marginTop: 8,
+  },
+
+  logoutIcon: {
+    color: C.red,
+    fontSize: 21,
+    fontWeight: "700",
+  },
+
+  logoutText: {
+    color: C.red,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  logoutHint: {
+    color: C.muted,
+    fontSize: 10,
+    textAlign: "center",
+    marginTop: 9,
+  },
+
+  footer: {
+    color: "#596174",
+    fontSize: 8,
+    letterSpacing: 1,
+    textAlign: "center",
+    marginTop: 25,
+  },
 });
