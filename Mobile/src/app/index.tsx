@@ -48,7 +48,7 @@ export default function LockScreen() {
           [
             {
               text: "Continue",
-              onPress: () => router.replace("/(tabs)/activity"),
+              onPress: () => router.replace("/(tabs)"),
             },
             {
               text: "Cancel",
