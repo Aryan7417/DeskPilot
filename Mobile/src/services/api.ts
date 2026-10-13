@@ -1,6 +1,6 @@
 const API_BASE_URL = "http://192.168.1.5:3000";
 
-const API_TOKEN = "YOUR_DESKPILOT_TOKEN";
+const API_TOKEN = "pQahepv9dIrIPyFU0wzAbbr5xXqqUwuuLYPoBfqb2mlPtQvDSkdDmstXow0XI5rk";
 
 
 export async function apiRequest<T>(
