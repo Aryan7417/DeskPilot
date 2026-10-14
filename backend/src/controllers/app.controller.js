@@ -1,12 +1,11 @@
-const { spawn } = require("child_process");
 
-
+const { spawn, execFile } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
-
 const appsFile = path.join(__dirname, "../../data/apps.json");
+const iconsDir = path.join(__dirname, "../../public/app-icons");
 
 function readApps() {
   return JSON.parse(fs.readFileSync(appsFile, "utf8"));
@@ -16,48 +15,272 @@ function saveApps(apps) {
   fs.writeFileSync(appsFile, JSON.stringify(apps, null, 2));
 }
 
-function getApps(req, res) {
-  res.json({ success: true, apps: readApps() });
-}
+// Extract the real Windows executable icon into a PNG file.
+// function extractAppIcon(executablePath, iconFileName) {
+//   return new Promise((resolve) => {
+//     if (
+//       process.platform !== "win32" ||
+//       !fs.existsSync(executablePath) ||
+//       path.extname(executablePath).toLowerCase() !== ".exe"
+//     ) {
+//       return resolve(false);
+//     }
+
+//     fs.mkdirSync(iconsDir, { recursive: true });
+
+//     const outputPath = path.join(iconsDir, iconFileName);
+
+//     const script = [
+//       "Add-Type -AssemblyName System.Drawing",
+//       "$exe = $args[0]",
+//       "$out = $args[1]",
+//       "$icon = [System.Drawing.Icon]::ExtractAssociatedIcon($exe)",
+//       "if ($null -eq $icon) { exit 2 }",
+//       "$bitmap = $icon.ToBitmap()",
+//       "try { $bitmap.Save($out, [System.Drawing.Imaging.ImageFormat]::Png) }",
+//       "finally { $bitmap.Dispose(); $icon.Dispose() }",
+//     ].join("; ");
+
+//     execFile(
+//       "powershell.exe",
+//       [
+//         "-NoProfile",
+//         "-NonInteractive",
+//         "-ExecutionPolicy",
+//         "Bypass",
+//         "-Command",
+//         script,
+//         executablePath,
+//         outputPath,
+//       ],
+//       { windowsHide: true, timeout: 15000 },
+//       (error) => {
+//         if (error || !fs.existsSync(outputPath)) {
+//           console.error("Icon extraction failed:", error?.message || "No PNG created");
+//           return resolve(false);
+//         }
+
+//         resolve(true);
+//       }
+//     );
+//   });
+// }
 
 
-function addApp(req, res) {
-  const { name, executablePath } = req.body;
-
-  if (
-    typeof name !== "string" ||
-    typeof executablePath !== "string" ||
-    !name.trim() ||
-    !path.isAbsolute(executablePath)
-  ) {
-    return res.status(400).json({
-      success: false,
-      message: "Valid app name and absolute executable path are required",
-    });
-  }
-  const apps = readApps();
-
-  const app = {
-    id: crypto.randomUUID(),
-    name: name.trim(),
-    executablePath: path.normalize(executablePath),
-  };
 
 
-  apps.push(app);
-  saveApps(apps);
+// function extractAppIcon(executablePath, iconFileName) {
+//   return new Promise((resolve) => {
+//     if (process.platform !== "win32") {
+//       return resolve(false);
+//     }
 
-  res.status(201).json({
-    success: true,
-    message: "Application saved",
-    app,
+//     console.log("Extracting icon:", executablePath);
+//     console.log("Icon output:", outputPath);
+//     try {
+//       fs.mkdirSync(iconsDir, { recursive: true });
+//     } catch (error) {
+//       console.error("Icon folder error:", error.message);
+//       return resolve(false);
+//     }
+
+//     const outputPath = path.join(iconsDir, iconFileName);
+
+//     const script = `
+//       Add-Type -AssemblyName System.Drawing
+//       $exe = $env:DESKPILOT_EXE
+//       $out = $env:DESKPILOT_ICON_OUT
+//       $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($exe)
+
+//       if ($null -eq $icon) {
+//         throw "Icon not found"
+//       }
+
+//       $bitmap = $icon.ToBitmap()
+
+//       try {
+//         $bitmap.Save($out, [System.Drawing.Imaging.ImageFormat]::Png)
+//       }
+//       finally {
+//         $bitmap.Dispose()
+//         $icon.Dispose()
+//       }
+//     `;
+
+//     execFile(
+//       "powershell.exe",
+//       ["-NoProfile", "-NonInteractive", "-Command", script],
+//       {
+//         windowsHide: true,
+//         timeout: 15000,
+//         env: {
+//           ...process.env,
+//           DESKPILOT_EXE: executablePath,
+//           DESKPILOT_ICON_OUT: outputPath,
+//         },
+//       },
+//       // (error) => {
+//       //   if (error || !fs.existsSync(outputPath)) {
+//       //     console.error("Icon extraction failed:", error?.message || "PNG not created");
+//       //     return resolve(false);
+//       //   }
+
+//       //   console.log("Icon saved:", outputPath);
+//       //   resolve(true);
+//       // }
+
+//       (error) => {
+//         console.log("PowerShell error:", error?.message || "No error");
+//         console.log("PNG exists:", fs.existsSync(outputPath));
+
+//         if (error || !fs.existsSync(outputPath)) {
+//           return resolve(false);
+//         }
+
+//         console.log("Icon saved:", outputPath);
+//         resolve(true);
+//       }
+//     );
+//   });
+// }
+
+function extractAppIcon(executablePath, iconFileName) {
+  return new Promise((resolve) => {
+    if (process.platform !== "win32") {
+      return resolve(false);
+    }
+
+    const outputPath = path.join(iconsDir, iconFileName);
+
+    console.log("Extracting icon:", executablePath);
+    console.log("Icon output:", outputPath);
+
+    fs.mkdirSync(iconsDir, { recursive: true });
+
+    const script = `
+      Add-Type -AssemblyName System.Drawing
+      $exe = $env:DESKPILOT_EXE
+      $out = $env:DESKPILOT_ICON_OUT
+
+      $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($exe)
+
+      if ($null -eq $icon) {
+        throw "Icon not found"
+      }
+
+      $bitmap = $icon.ToBitmap()
+
+      try {
+        $bitmap.Save($out, [System.Drawing.Imaging.ImageFormat]::Png)
+      }
+      finally {
+        $bitmap.Dispose()
+        $icon.Dispose()
+      }
+    `;
+
+    execFile(
+      "powershell.exe",
+      ["-NoProfile", "-NonInteractive", "-Command", script],
+      {
+        windowsHide: true,
+        timeout: 15000,
+        env: {
+          ...process.env,
+          DESKPILOT_EXE: executablePath,
+          DESKPILOT_ICON_OUT: outputPath,
+        },
+      },
+      (error, stdout, stderr) => {
+        console.log("PowerShell error:", error?.message || "No error");
+        if (stderr) console.log("PowerShell stderr:", stderr);
+
+        const exists = fs.existsSync(outputPath);
+        console.log("PNG exists:", exists);
+
+        if (error || !exists) {
+          return resolve(false);
+        }
+
+        console.log("Icon saved:", outputPath);
+        resolve(true);
+      }
+    );
   });
 }
 
 
 
 
+function getApps(req, res) {
+  res.json({ success: true, apps: readApps() });
+}
 
+async function addApp(req, res) {
+  try {
+    const { name, executablePath } = req.body;
+
+    if (
+      typeof name !== "string" ||
+      typeof executablePath !== "string" ||
+      !name.trim() ||
+      !path.isAbsolute(executablePath)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid app name and absolute executable path are required",
+      });
+    }
+
+    const normalizedPath = path.normalize(executablePath);
+
+    if (
+      path.extname(normalizedPath).toLowerCase() !== ".exe" ||
+      !fs.existsSync(normalizedPath)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Executable .exe file does not exist",
+      });
+    }
+
+    const apps = readApps();
+
+    const app = {
+      id: crypto.randomUUID(),
+      name: name.trim(),
+      executablePath: normalizedPath,
+      iconUrl: null,
+    };
+
+    const iconFileName = `${app.id}.png`;
+    const extracted = await extractAppIcon(
+      normalizedPath,
+      iconFileName
+    );
+
+    if (extracted) {
+      // Uses the host/IP from the mobile API request.
+      app.iconUrl = `${req.protocol}://${req.get("host")}/app-icons/${iconFileName}`;
+    }
+
+    apps.push(app);
+    saveApps(apps);
+
+    return res.status(201).json({
+      success: true,
+      message: "Application saved",
+      app,
+    });
+  } catch (error) {
+    console.error("Add app error:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Could not save application",
+    });
+  }
+}
 
 function launchApp(req, res) {
   try {
@@ -83,9 +306,6 @@ function launchApp(req, res) {
       });
     }
 
-    console.log("Launching app:", app.name);
-    console.log("Executable:", app.executablePath);
-
     const child = spawn(app.executablePath, [], {
       shell: false,
       detached: true,
@@ -105,24 +325,15 @@ function launchApp(req, res) {
     });
 
     child.once("spawn", () => {
-      console.log("Process started. PID:", child.pid);
-
       if (!res.headersSent) {
         res.status(200).json({
           success: true,
           message: `${app.name} launch requested`,
-          app: {
-            id: app.id,
-            name: app.name,
-          },
+          app: { id: app.id, name: app.name },
         });
       }
 
       child.unref();
-    });
-
-    child.once("exit", (code, signal) => {
-      console.log("Process exited:", { code, signal });
     });
   } catch (error) {
     console.error("Launch error:", error.message);
@@ -136,11 +347,8 @@ function launchApp(req, res) {
   }
 }
 
-
-
-
 function deleteApp(req, res) {
-   try {
+  try {
     const apps = readApps();
     const appIndex = apps.findIndex(
       (item) => item.id === req.params.id
@@ -155,20 +363,30 @@ function deleteApp(req, res) {
 
     const deletedApp = apps[appIndex];
 
-
-      apps.splice(appIndex, 1);
+    apps.splice(appIndex, 1);
     saveApps(apps);
 
+    // Remove the associated icon when the app is deleted.
+    if (deletedApp.iconUrl) {
+      const iconFileName = path.basename(
+        new URL(deletedApp.iconUrl).pathname
+      );
 
-      return res.json({
+      if (/^[a-f0-9-]+\.png$/i.test(iconFileName)) {
+        const iconPath = path.join(iconsDir, iconFileName);
+
+        if (fs.existsSync(iconPath)) {
+          fs.unlinkSync(iconPath);
+        }
+      }
+    }
+
+    return res.json({
       success: true,
       message: "Application deleted successfully",
-      app: {
-        id: deletedApp.id,
-        name: deletedApp.name,
-      },
+      app: { id: deletedApp.id, name: deletedApp.name },
     });
-    } catch (error) {
+  } catch (error) {
     console.error("Delete error:", error.message);
 
     return res.status(500).json({
@@ -178,4 +396,4 @@ function deleteApp(req, res) {
   }
 }
 
-module.exports = { getApps, addApp, launchApp,deleteApp };
+module.exports = { getApps, addApp, launchApp, deleteApp };

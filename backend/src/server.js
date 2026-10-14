@@ -1,19 +1,24 @@
 
-require("dotenv").config(); 
+require("dotenv").config();
 
 const express = require("express");
+const path = require("path");
+
 const app = express();
 const authenticate = require("./middleware/auth");
 const appRoutes = require("./routes/app.routes");
 
 const PORT = process.env.PORT || 3000;
 
-
 app.use(express.json({ limit: "10kb" }));
+
+
+app.use(
+  "/app-icons",
+  express.static(path.join(__dirname, "../public/app-icons"))
+);
+
 app.use("/api/apps", appRoutes);
-
-
-
 
 app.get("/health", (req, res) => {
   res.status(200).json({
@@ -31,8 +36,6 @@ app.get("/api/test", authenticate, (req, res) => {
   });
 });
 
-
-
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && "body" in err) {
     return res.status(400).json({
@@ -40,9 +43,6 @@ app.use((err, req, res, next) => {
       message: "Invalid JSON body",
     });
   }
-
-
-
 
   console.error("Server error:", err.message);
 
@@ -52,8 +52,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`DeskPilot server running on port ${PORT}`);
-  console.log(`Health laptop check: http://Localhost:${PORT}/health`);
+  console.log(`Health check: http://localhost:${PORT}/health`);
 });
