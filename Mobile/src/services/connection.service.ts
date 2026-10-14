@@ -1,6 +1,9 @@
+
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const CONNECTION_KEY = "@deskpilot/connection";
+const CONNECTION_STATUS_KEY = "@deskpilot/connection-status";
 
 export type ConnectionSettings = {
   ip: string;
@@ -16,9 +19,7 @@ export async function getConnectionSettings(): Promise<ConnectionSettings> {
   try {
     const saved = await AsyncStorage.getItem(CONNECTION_KEY);
 
-    if (!saved) {
-      return DEFAULT_SETTINGS;
-    }
+    if (!saved) return DEFAULT_SETTINGS;
 
     const parsed = JSON.parse(saved);
 
@@ -37,12 +38,29 @@ export async function getConnectionSettings(): Promise<ConnectionSettings> {
 export async function saveConnectionSettings(
   settings: ConnectionSettings
 ): Promise<void> {
+  await AsyncStorage.setItem(CONNECTION_KEY, JSON.stringify(settings));
+}
+
+export async function getConnectionStatus(): Promise<boolean> {
+  try {
+    return (
+      (await AsyncStorage.getItem(CONNECTION_STATUS_KEY)) === "connected"
+    );
+  } catch {
+    return false;
+  }
+}
+
+export async function saveConnectionStatus(
+  connected: boolean
+): Promise<void> {
   await AsyncStorage.setItem(
-    CONNECTION_KEY,
-    JSON.stringify(settings)
+    CONNECTION_STATUS_KEY,
+    connected ? "connected" : "disconnected"
   );
 }
 
 export async function clearConnectionSettings(): Promise<void> {
   await AsyncStorage.removeItem(CONNECTION_KEY);
+  await AsyncStorage.setItem(CONNECTION_STATUS_KEY, "disconnected");
 }

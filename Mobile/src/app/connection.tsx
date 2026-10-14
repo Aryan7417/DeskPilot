@@ -18,8 +18,9 @@ import { Ionicons } from "@expo/vector-icons";
 import {
     getConnectionSettings,
     saveConnectionSettings,
+    getConnectionStatus,
+    saveConnectionStatus,
 } from "../services/connection.service";
-
 const C = {
     bg: "#0B0D12",
     card: "#151922",
@@ -42,25 +43,6 @@ export default function ConnectionScreen() {
 
 
 
-    // useEffect(() => {
-    //     let active = true;
-
-    //     const loadSettings = async () => {
-    //         const settings = await getConnectionSettings();
-
-    //         if (active) {
-    //             setIp(settings.ip);
-    //             setPort(settings.port);
-    //         }
-    //     };
-
-    //     loadSettings();
-
-    //     return () => {
-    //         active = false;
-    //     };
-    // }, []);
-
 
 
     useEffect(() => {
@@ -69,6 +51,23 @@ export default function ConnectionScreen() {
         const initializeConnection = async () => {
             try {
                 const settings = await getConnectionSettings();
+
+                const isConnected = await getConnectionStatus();
+
+                if (!active) return;
+
+                setIp(settings.ip);
+                setPort(settings.port);
+
+                // Agar user ne manually disconnect kiya hai,
+                // to automatic health check se dobara connected mat karo.
+                if (!isConnected) {
+                    setConnected(false);
+                    setLoading(false);
+                    return;
+                }
+
+                setLoading(true);
 
                 if (!active) return;
 
@@ -88,8 +87,8 @@ export default function ConnectionScreen() {
                     response.ok &&
                     (data.success === true || data.status === "online");
 
-                setConnected(online);
-                setConnectionError("");
+                setConnected(true);
+                await saveConnectionStatus(true);
 
                 if (online) {
                     setLastChecked(new Date().toLocaleTimeString());
@@ -164,12 +163,19 @@ export default function ConnectionScreen() {
                     data.message || `Server returned HTTP ${response.status}`
                 );
             }
+
+
+
             await saveConnectionSettings({
                 ip: cleanIp,
                 port: String(portNumber),
             });
 
+            // Save connection status for the Dashboard
+            await saveConnectionStatus(true);
+
             setConnected(true);
+
             setLastChecked(new Date().toLocaleTimeString());
 
             Alert.alert(
@@ -195,15 +201,18 @@ export default function ConnectionScreen() {
         }
     };
 
-    const handleDisconnect = () => {
+    const handleDisconnect = async () => {
+        await saveConnectionStatus(false);
+
         setConnected(false);
         setConnectionError("");
+        setLastChecked("");
+
         Alert.alert(
             "Disconnected",
-            "The connection status has been cleared."
+            "DeskPilot has been disconnected on this device."
         );
     };
-
 
     return (
         <View style={s.screen}>
