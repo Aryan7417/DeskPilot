@@ -42,24 +42,79 @@ export default function ConnectionScreen() {
 
 
 
+    // useEffect(() => {
+    //     let active = true;
+
+    //     const loadSettings = async () => {
+    //         const settings = await getConnectionSettings();
+
+    //         if (active) {
+    //             setIp(settings.ip);
+    //             setPort(settings.port);
+    //         }
+    //     };
+
+    //     loadSettings();
+
+    //     return () => {
+    //         active = false;
+    //     };
+    // }, []);
+
+
+
     useEffect(() => {
         let active = true;
 
-        const loadSettings = async () => {
-            const settings = await getConnectionSettings();
+        const initializeConnection = async () => {
+            try {
+                const settings = await getConnectionSettings();
 
-            if (active) {
+                if (!active) return;
+
                 setIp(settings.ip);
                 setPort(settings.port);
+                setLoading(true);
+
+                const response = await fetch(
+                    `http://${settings.ip}:${settings.port}/health`
+                );
+
+                const data = await response.json();
+
+                if (!active) return;
+
+                const online =
+                    response.ok &&
+                    (data.success === true || data.status === "online");
+
+                setConnected(online);
+                setConnectionError("");
+
+                if (online) {
+                    setLastChecked(new Date().toLocaleTimeString());
+                } else {
+                    setConnectionError("DeskPilot server is not responding correctly.");
+                }
+            } catch {
+                if (active) {
+                    setConnected(false);
+                    setConnectionError(
+                        "Unable to reach the server. Check the IP, port and network."
+                    );
+                }
+            } finally {
+                if (active) setLoading(false);
             }
         };
 
-        loadSettings();
+        void initializeConnection();
 
         return () => {
             active = false;
         };
     }, []);
+
 
     const handleConnect = async () => {
         Keyboard.dismiss();
@@ -101,7 +156,10 @@ export default function ConnectionScreen() {
 
             const data = await response.json();
 
-            if (!response.ok || data.success !== true) {
+            if (
+                !response.ok ||
+                (data.success !== true && data.status !== "online")
+            ) {
                 throw new Error(
                     data.message || `Server returned HTTP ${response.status}`
                 );
