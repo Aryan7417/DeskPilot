@@ -1,345 +1,542 @@
-
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    Pressable,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
+import { apiRequest } from "../../services/api";
 
 const C = {
-    bg: "#0B0D12",
-    card: "#151922",
-    border: "#292F3D",
-    purple: "#7785FF",
-    white: "#F5F7FA",
-    muted: "#9299AA",
-    green: "#4ADE80",
-    orange: "#FBBF24",
+  bg: "#090B11",
+  panel: "#121622",
+  panel2: "#181E2C",
+  border: "#272E40",
+  purple: "#8B7CFF",
+  cyan: "#5DE1E6",
+  white: "#F5F7FF",
+  muted: "#929BB2",
+  green: "#4ADE80",
+  red: "#FB7185",
 };
 
-const EVENTS = [
-    {
-        id: "1",
-        title: "DeskPilot opened",
-        detail: "Dashboard visited",
-        time: "Just now",
-        category: "System",
-        icon: "✦",
-        color: C.purple,
-    },
-    {
-        id: "2",
-        title: "Notepad launched",
-        detail: "Windows application",
-        time: "10 min ago",
-        category: "Launches",
-        icon: "↗",
-        color: C.green,
-    },
-    {
-        id: "3",
-        title: "Application added",
-        detail: "Brave Browser",
-        time: "Yesterday",
-        category: "Apps",
-        icon: "＋",
-        color: C.purple,
-    },
-    {
-        id: "4",
-        title: "Connection unavailable",
-        detail: "Laptop is not connected",
-        time: "Yesterday",
-        category: "System",
-        icon: "⌁",
-        color: C.orange,
-    },
-];
+type Clip = {
+  id: string;
+  text: string;
+  createdAt?: string;
+  source?: string;
+};
 
-const FILTERS = ["All", "Launches", "Apps", "System"];
+type ClipboardResponse = Clip[] | { items?: Clip[]; clipboard?: Clip[] };
+
+function normalizeClips(data: ClipboardResponse): Clip[] {
+  if (Array.isArray(data)) return data;
+  return data.items ?? data.clipboard ?? [];
+}
 
 export default function ActivityScreen() {
-    const [selected, setSelected] = useState("All");
+  const [clips, setClips] = useState<Clip[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [error, setError] = useState("");
+  const [lastSync, setLastSync] = useState("");
+  const knownIds = useRef<Set<string>>(new Set());
 
-    const events =
-        selected === "All"
-            ? EVENTS
-            : EVENTS.filter((event) => event.category === selected);
+  // Expected backend contract:
+  // GET    /api/clipboard       -> { items: [{ id, text, createdAt, source }] }
+  // DELETE /api/clipboard/:id  -> removes one history item
+  const loadClipboard = useCallback(async (manual = false) => {
+    if (manual) setRefreshing(true);
+    else setSyncing(true);
 
-    return (
-        <View style={s.screen}>
-            <ScrollView
-                contentContainerStyle={s.content}
-                showsVerticalScrollIndicator={false}
-            >
-                <Text style={s.eyebrow}>YOUR WORKSPACE</Text>
-                <Text style={s.title}>Activity</Text>
-                <Text style={s.subtitle}>
-                    Keep track of what happens in DeskPilot.
-                </Text>
+    try {
+      const result = await apiRequest<ClipboardResponse>("/api/clipboard");
+      const next = normalizeClips(result);
+      const nextIds = new Set(next.map((item) => item.id));
 
-                <View style={s.summary}>
-                    <View style={s.summaryIcon}>
-                        <Text style={s.summarySymbol}>◷</Text>
-                    </View>
-                    <View style={s.summaryInfo}>
-                        <Text style={s.summaryLabel}>RECENT EVENTS</Text>
-                        <Text style={s.summaryValue}>{EVENTS.length} activities</Text>
-                    </View>
-                    <View style={s.previewBadge}>
-                        <Text style={s.previewText}>DEMO</Text>
-                    </View>
-                </View>
+      // Highlight when a new clip arrives from the laptop.
+      const hasNew = next.some((item) => !knownIds.current.has(item.id));
+      knownIds.current = nextIds;
+      setClips(next);
+      setError("");
+      setLastSync(new Date().toLocaleTimeString());
 
-                <Text style={s.sectionTitle}>ACTIVITY HISTORY</Text>
+      if (hasNew && !manual && !loading) {
+        // The new item appears at the top automatically; no alert to interrupt typing.
+      }
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Clipboard sync API is not available yet."
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+      setSyncing(false);
+    }
+  }, [loading]);
 
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={s.filters}
-                >
-                    {FILTERS.map((filter) => {
-                        const active = selected === filter;
+  useEffect(() => {
+    void loadClipboard();
+    const timer = setInterval(() => void loadClipboard(), 2500);
+    return () => clearInterval(timer);
+  }, [loadClipboard]);
 
-                        return (
-                            <Pressable
-                                key={filter}
-                                onPress={() => setSelected(filter)}
-                                style={[s.filter, active && s.activeFilter]}
-                            >
-                                <Text
-                                    style={[
-                                        s.filterText,
-                                        active && s.activeFilterText,
-                                    ]}
-                                >
-                                    {filter}
-                                </Text>
-                            </Pressable>
-                        );
-                    })}
-                </ScrollView>
+  const copyClip = async (clip: Clip) => {
+    try {
+      await Clipboard.setStringAsync(clip.text);
+      Alert.alert("Copied to phone", "Text is now in your mobile clipboard.");
+    } catch {
+      Alert.alert("Copy failed", "Could not copy this text to the phone.");
+    }
+  };
 
-                {events.length > 0 ? (
-                    events.map((event, index) => (
-                        <View key={event.id} style={s.eventRow}>
-                            <View style={s.timeline}>
-                                <View
-                                    style={[
-                                        s.eventIcon,
-                                        { backgroundColor: `${event.color}20` },
-                                    ]}
-                                >
-                                    <Text style={[s.eventSymbol, { color: event.color }]}>
-                                        {event.icon}
-                                    </Text>
-                                </View>
+  const deleteClip = (clip: Clip) => {
+    Alert.alert("Delete clip?", "This removes the item from clipboard history.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await apiRequest(`/api/clipboard/${encodeURIComponent(clip.id)}`, {
+              method: "DELETE",
+            });
+            setClips((previous) => previous.filter((item) => item.id !== clip.id));
+          } catch (e) {
+            Alert.alert(
+              "Delete failed",
+              e instanceof Error
+                ? e.message
+                : "Could not delete this clipboard item."
+            );
+          }
+        },
+      },
+    ]);
+  };
 
-                                {index !== events.length - 1 && (
-                                    <View style={s.timelineLine} />
-                                )}
-                            </View>
+  const clipCount = clips.length;
 
-                            <View style={s.eventCard}>
-                                <View style={s.eventTop}>
-                                    <Text style={s.eventTitle}>{event.title}</Text>
-                                    <Text style={s.eventTime}>{event.time}</Text>
-                                </View>
-
-                                <Text style={s.eventDetail}>{event.detail}</Text>
-
-                                <View style={s.eventFooter}>
-                                    <View style={s.categoryBadge}>
-                                        <Text style={s.categoryText}>{event.category}</Text>
-                                    </View>
-                                </View>
-                            </View>
-                        </View>
-                    ))
-                ) : (
-                    <View style={s.empty}>
-                        <Text style={s.emptySymbol}>◷</Text>
-                        <Text style={s.emptyTitle}>No activity here</Text>
-                        <Text style={s.emptyText}>
-                            Try selecting another category.
-                        </Text>
-                    </View>
-                )}
-
-                <View style={s.note}>
-                    <Text style={s.noteTitle}>ⓘ  Preview data</Text>
-                    <Text style={s.noteText}>
-                        These are sample events for UI development. Real activity
-                        history will be connected later.
-                    </Text>
-                </View>
-
-                <Text style={s.footer}>DESKPILOT • ACTIVITY HISTORY</Text>
-            </ScrollView>
+  return (
+    <View style={s.screen}>
+      <ScrollView
+        contentContainerStyle={s.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void loadClipboard(true)}
+            tintColor={C.cyan}
+          />
+        }
+      >
+        <View style={s.topLine}>
+          <View>
+            <Text style={s.eyebrow}>DESKPILOT • SMART TOOLS</Text>
+            <Text style={s.title}>Clipboard</Text>
+            <Text style={s.subtitle}>
+              One copy on your laptop. Ready on your phone.
+            </Text>
+          </View>
+          <View style={s.logoBox}>
+            <Text style={s.logoGlyph}>⧉</Text>
+          </View>
         </View>
-    );
+
+        <View style={s.hero}>
+          <View style={s.heroGlow} />
+          <View style={s.heroTop}>
+            <View style={s.livePill}>
+              <View style={[s.liveDot, { backgroundColor: error ? C.red : C.green }]} />
+              <Text style={s.liveText}>{error ? "SYNC WAITING" : "LIVE SYNC"}</Text>
+            </View>
+            {syncing ? (
+              <ActivityIndicator size="small" color={C.cyan} />
+            ) : (
+              <Text style={s.syncEvery}>AUTO • 2.5 SEC</Text>
+            )}
+          </View>
+
+          <View style={s.heroMiddle}>
+            <View style={s.heroIcon}>
+              <Text style={s.heroIconText}>⧉</Text>
+            </View>
+            <View style={s.heroCopy}>
+              <Text style={s.heroHeading}>Clipboard bridge</Text>
+              <Text style={s.heroDescription}>
+                Copy with your laptop mouse. New text will appear here when the Windows agent syncs it.
+              </Text>
+            </View>
+          </View>
+
+          <View style={s.heroBottom}>
+            <View>
+              <Text style={s.statLabel}>SAVED CLIPS</Text>
+              <Text style={s.statValue}>{clipCount.toString().padStart(2, "0")}</Text>
+            </View>
+            <View style={s.heroDivider} />
+            <View style={s.lastSyncBlock}>
+              <Text style={s.statLabel}>LAST CHECK</Text>
+              <Text style={s.lastSync}>{lastSync || "Connecting..."}</Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              style={s.refreshButton}
+              onPress={() => void loadClipboard(true)}
+            >
+              <Text style={s.refreshGlyph}>↻</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={s.sectionHead}>
+          <View>
+            <Text style={s.sectionTitle}>CLIP HISTORY</Text>
+            <Text style={s.sectionSubtitle}>Latest copied text appears first</Text>
+          </View>
+          <View style={s.countBadge}>
+            <Text style={s.countBadgeText}>{clipCount} ITEMS</Text>
+          </View>
+        </View>
+
+        {loading ? (
+          <View style={s.stateCard}>
+            <ActivityIndicator color={C.cyan} />
+            <Text style={s.stateText}>Connecting to your laptop...</Text>
+          </View>
+        ) : clips.length > 0 ? (
+          clips.map((clip, index) => (
+            <View key={clip.id} style={s.clipCard}>
+              <View style={s.clipAccent} />
+              <View style={s.clipHeader}>
+                <View style={s.clipTypeRow}>
+                  <View style={s.clipNumber}>
+                    <Text style={s.clipNumberText}>
+                      {String(index + 1).padStart(2, "0")}
+                    </Text>
+                  </View>
+                  <View style={s.sourcePill}>
+                    <View style={s.sourceDot} />
+                    <Text style={s.sourceText}>
+                      {(clip.source || "LAPTOP").toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={s.clipTime}>
+                  {clip.createdAt
+                    ? new Date(clip.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "SYNCED"}
+                </Text>
+              </View>
+
+              <Text style={s.clipContent} selectable numberOfLines={7}>
+                {clip.text}
+              </Text>
+
+              <View style={s.clipFooter}>
+                <Text style={s.charCount}>
+                  {clip.text.length.toLocaleString()} CHARACTERS
+                </Text>
+                <View style={s.clipActions}>
+                  <Pressable
+                    style={s.copyButton}
+                    onPress={() => void copyClip(clip)}
+                  >
+                    <Text style={s.copyGlyph}>⧉</Text>
+                    <Text style={s.copyText}>Copy</Text>
+                  </Pressable>
+                  <Pressable
+                    style={s.deleteButton}
+                    onPress={() => deleteClip(clip)}
+                  >
+                    <Text style={s.deleteText}>Delete</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          ))
+        ) : (
+          <View style={s.emptyCard}>
+            <View style={s.emptyIcon}>
+              <Text style={s.emptyGlyph}>⧉</Text>
+            </View>
+            <Text style={s.emptyTitle}>
+              {error ? "Waiting for clipboard service" : "Your clipboard is clear"}
+            </Text>
+            <Text style={s.emptyDescription}>
+              {error
+                ? "The mobile screen is ready, but the backend clipboard endpoint must be implemented and the Windows agent must be running."
+                : "Copy any text on your laptop. Once Windows clipboard monitoring is connected, it will show up here automatically."}
+            </Text>
+            {error ? (
+              <Pressable style={s.retryButton} onPress={() => void loadClipboard(true)}>
+                <Text style={s.retryText}>Try again</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        )}
+
+        {error ? (
+          <View style={s.warning}>
+            <Text style={s.warningTitle}>Backend connection needed</Text>
+            <Text style={s.warningText}>
+              {error}. This screen polls GET /api/clipboard every 2.5 seconds.
+              The Windows backend must capture clipboard changes and provide this endpoint.
+            </Text>
+          </View>
+        ) : null}
+
+        <Text style={s.footer}>PRIVATE BY DESIGN  •  DESKPILOT</Text>
+      </ScrollView>
+    </View>
+  );
 }
 
 const s = StyleSheet.create({
-    screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 22, paddingTop: 32, paddingBottom: 40 },
-    eyebrow: {
-        color: C.purple,
-        fontSize: 10,
-        fontWeight: "800",
-        letterSpacing: 2,
-    },
-    title: {
-        color: C.white,
-        fontSize: 30,
-        fontWeight: "800",
-        marginTop: 9,
-    },
-    subtitle: {
-        color: C.muted,
-        fontSize: 13,
-        lineHeight: 21,
-        marginTop: 8,
-        marginBottom: 25,
-    },
-    summary: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: C.card,
-        borderColor: C.border,
-        borderWidth: 1,
-        borderRadius: 17,
-        padding: 16,
-        marginBottom: 30,
-    },
-    summaryIcon: {
-        width: 45,
-        height: 45,
-        borderRadius: 13,
-        backgroundColor: "#252A46",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    summarySymbol: { color: C.purple, fontSize: 26 },
-    summaryInfo: { flex: 1, marginLeft: 12 },
-    summaryLabel: {
-        color: C.muted,
-        fontSize: 9,
-        fontWeight: "700",
-        letterSpacing: 1,
-    },
-    summaryValue: {
-        color: C.white,
-        fontSize: 15,
-        fontWeight: "700",
-        marginTop: 5,
-    },
-    previewBadge: {
-        backgroundColor: "#252A46",
-        paddingHorizontal: 9,
-        paddingVertical: 6,
-        borderRadius: 8,
-    },
-    previewText: { color: C.purple, fontSize: 9, fontWeight: "800" },
-    sectionTitle: {
-        color: C.white,
-        fontSize: 11,
-        fontWeight: "800",
-        letterSpacing: 1.3,
-        marginBottom: 16,
-    },
-    filters: { gap: 9, paddingBottom: 20 },
-    filter: {
-        borderWidth: 1,
-        borderColor: C.border,
-        backgroundColor: C.card,
-        paddingHorizontal: 17,
-        paddingVertical: 10,
-        borderRadius: 11,
-    },
-    activeFilter: {
-        backgroundColor: C.purple,
-        borderColor: C.purple,
-    },
-    filterText: { color: C.muted, fontSize: 12, fontWeight: "600" },
-    activeFilterText: { color: "#FFFFFF" },
-    eventRow: { flexDirection: "row", minHeight: 106 },
-    timeline: { width: 49, alignItems: "center" },
-    eventIcon: {
-        width: 39,
-        height: 39,
-        borderRadius: 13,
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1,
-    },
-    eventSymbol: { fontSize: 20, fontWeight: "700" },
-    timelineLine: {
-        position: "absolute",
-        top: 41,
-        bottom: 0,
-        width: 1,
-        backgroundColor: C.border,
-    },
-    eventCard: {
-        flex: 1,
-        backgroundColor: C.card,
-        borderWidth: 1,
-        borderColor: C.border,
-        borderRadius: 15,
-        padding: 13,
-        marginBottom: 13,
-    },
-    eventTop: {
-        flexDirection: "row",
-        alignItems: "flex-start",
-        justifyContent: "space-between",
-        gap: 8,
-    },
-    eventTitle: {
-        flex: 1,
-        color: C.white,
-        fontSize: 12,
-        fontWeight: "700",
-    },
-    eventTime: { color: C.muted, fontSize: 9 },
-    eventDetail: { color: C.muted, fontSize: 11, marginTop: 7 },
-    eventFooter: { marginTop: 12, flexDirection: "row" },
-    categoryBadge: {
-        backgroundColor: "#22263A",
-        borderRadius: 7,
-        paddingHorizontal: 9,
-        paddingVertical: 5,
-    },
-    categoryText: { color: C.purple, fontSize: 9, fontWeight: "700" },
-    empty: {
-        alignItems: "center",
-        backgroundColor: C.card,
-        borderWidth: 1,
-        borderColor: C.border,
-        borderRadius: 16,
-        padding: 30,
-    },
-    emptySymbol: { color: C.muted, fontSize: 32 },
-    emptyTitle: { color: C.white, fontSize: 15, fontWeight: "700", marginTop: 10 },
-    emptyText: { color: C.muted, fontSize: 11, marginTop: 6 },
-    note: {
-        backgroundColor: "#1B2030",
-        borderColor: "#343D64",
-        borderWidth: 1,
-        borderRadius: 13,
-        padding: 14,
-        marginTop: 15,
-    },
-    noteTitle: { color: C.white, fontSize: 12, fontWeight: "700" },
-    noteText: { color: C.muted, fontSize: 11, lineHeight: 18, marginTop: 7 },
-    footer: {
-        color: "#596174",
-        fontSize: 9,
-        letterSpacing: 1,
-        textAlign: "center",
-        marginTop: 27,
-    },
+  screen: { flex: 1, backgroundColor: C.bg },
+  content: { padding: 20, paddingTop: 34, paddingBottom: 42 },
+  topLine: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 23,
+  },
+  eyebrow: { color: C.cyan, fontSize: 9, fontWeight: "800", letterSpacing: 1.8 },
+  title: { color: C.white, fontSize: 31, fontWeight: "900", marginTop: 8 },
+  subtitle: { color: C.muted, fontSize: 11, lineHeight: 17, marginTop: 7, maxWidth: 245 },
+  logoBox: {
+    width: 53,
+    height: 53,
+    borderRadius: 17,
+    backgroundColor: "#172A38",
+    borderColor: "#28505B",
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoGlyph: { color: C.cyan, fontSize: 30, fontWeight: "700" },
+  hero: {
+    overflow: "hidden",
+    backgroundColor: "#111B29",
+    borderWidth: 1,
+    borderColor: "#28424F",
+    borderRadius: 22,
+    padding: 17,
+    marginBottom: 29,
+  },
+  heroGlow: {
+    position: "absolute",
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: "#183D4A",
+    top: -100,
+    right: -50,
+    opacity: 0.65,
+  },
+  heroTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  livePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    backgroundColor: "#162B2E",
+    borderWidth: 1,
+    borderColor: "#285054",
+    borderRadius: 20,
+  },
+  liveDot: { width: 6, height: 6, borderRadius: 3 },
+  liveText: { color: C.cyan, fontSize: 8, fontWeight: "900", letterSpacing: 1 },
+  syncEvery: { color: C.muted, fontSize: 8, fontWeight: "800", letterSpacing: 1 },
+  heroMiddle: { flexDirection: "row", alignItems: "center", marginTop: 22, gap: 13 },
+  heroIcon: {
+    width: 53,
+    height: 53,
+    borderRadius: 16,
+    backgroundColor: "#1A3442",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#315866",
+  },
+  heroIconText: { color: C.cyan, fontSize: 30 },
+  heroCopy: { flex: 1 },
+  heroHeading: { color: C.white, fontSize: 16, fontWeight: "800" },
+  heroDescription: { color: "#AAB8C9", fontSize: 10, lineHeight: 16, marginTop: 6 },
+  heroBottom: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 21,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: "#2B3D4C",
+  },
+  statLabel: { color: C.muted, fontSize: 8, fontWeight: "800", letterSpacing: 1 },
+  statValue: { color: C.white, fontSize: 22, fontWeight: "900", marginTop: 3 },
+  heroDivider: { width: 1, height: 31, backgroundColor: "#31414D", marginHorizontal: 17 },
+  lastSyncBlock: { flex: 1 },
+  lastSync: { color: C.white, fontSize: 10, fontWeight: "700", marginTop: 7 },
+  refreshButton: {
+    width: 37,
+    height: 37,
+    borderRadius: 12,
+    backgroundColor: "#213641",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  refreshGlyph: { color: C.cyan, fontSize: 24 },
+  sectionHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 15,
+  },
+  sectionTitle: { color: C.white, fontSize: 11, fontWeight: "900", letterSpacing: 1.5 },
+  sectionSubtitle: { color: C.muted, fontSize: 10, marginTop: 5 },
+  countBadge: {
+    backgroundColor: "#1A2030",
+    borderWidth: 1,
+    borderColor: C.border,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  countBadgeText: { color: C.cyan, fontSize: 8, fontWeight: "900", letterSpacing: 0.7 },
+  clipCard: {
+    position: "relative",
+    overflow: "hidden",
+    backgroundColor: C.panel,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 17,
+    padding: 14,
+    marginBottom: 12,
+  },
+  clipAccent: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    backgroundColor: C.cyan,
+  },
+  clipHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  clipTypeRow: { flexDirection: "row", alignItems: "center", gap: 9 },
+  clipNumber: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    backgroundColor: "#1B2D3B",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  clipNumberText: { color: C.cyan, fontSize: 10, fontWeight: "900" },
+  sourcePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#1B282B",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  sourceDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: C.green },
+  sourceText: { color: "#A4D9D8", fontSize: 8, fontWeight: "900", letterSpacing: 0.8 },
+  clipTime: { color: C.muted, fontSize: 9 },
+  clipContent: { color: C.white, fontSize: 12, lineHeight: 19, marginTop: 14 },
+  clipFooter: {
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    marginTop: 15,
+    paddingTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  charCount: { color: C.muted, fontSize: 8, fontWeight: "700", letterSpacing: 0.5, flex: 1 },
+  clipActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  copyButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: C.purple,
+    borderRadius: 9,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+  },
+  copyGlyph: { color: "#FFFFFF", fontSize: 14 },
+  copyText: { color: "#FFFFFF", fontSize: 10, fontWeight: "900" },
+  deleteButton: {
+    borderWidth: 1,
+    borderColor: "#58303E",
+    backgroundColor: "#281923",
+    borderRadius: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  deleteText: { color: C.red, fontSize: 10, fontWeight: "800" },
+  stateCard: {
+    minHeight: 150,
+    backgroundColor: C.panel,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
+  stateText: { color: C.muted, fontSize: 11 },
+  emptyCard: {
+    backgroundColor: C.panel,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 18,
+    padding: 23,
+    alignItems: "center",
+  },
+  emptyIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    backgroundColor: "#1A2D3A",
+    borderWidth: 1,
+    borderColor: "#2A4B59",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyGlyph: { color: C.cyan, fontSize: 31 },
+  emptyTitle: { color: C.white, fontSize: 15, fontWeight: "800", marginTop: 16 },
+  emptyDescription: { color: C.muted, fontSize: 11, lineHeight: 18, textAlign: "center", marginTop: 8 },
+  retryButton: {
+    marginTop: 15,
+    paddingHorizontal: 17,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: "#243B48",
+  },
+  retryText: { color: C.cyan, fontSize: 11, fontWeight: "800" },
+  warning: {
+    marginTop: 14,
+    padding: 13,
+    borderRadius: 12,
+    backgroundColor: "#2B2022",
+    borderWidth: 1,
+    borderColor: "#5A373D",
+  },
+  warningTitle: { color: "#FFD2D7", fontSize: 11, fontWeight: "800" },
+  warningText: { color: "#D9ADB4", fontSize: 10, lineHeight: 16, marginTop: 6 },
+  footer: { color: "#596174", fontSize: 8, fontWeight: "800", letterSpacing: 1.2, textAlign: "center", marginTop: 27 },
 });

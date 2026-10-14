@@ -4,6 +4,7 @@ export type DesktopApp = {
   id: string;
   name: string;
   executablePath: string;
+  iconUrl?: string | null;
 };
 
 import { getConnectionSettings } from "../services/connection.service";

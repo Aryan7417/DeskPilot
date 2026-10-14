@@ -1,15 +1,5 @@
 [
   {
-    "id": "47d6f9f7-976b-4d84-b533-d5e1b6f4a87a",
-    "name": "brave",
-    "executablePath": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
-  },
-  {
-    "id": "2ccd74e0-fbaf-4f5d-9a6d-b4514c403cdf",
-    "name": "Calculator",
-    "executablePath": "C:\\Windows\\System32\\calc.exe"
-  },
-  {
     "id": "77a04c90-e948-4e67-91aa-4fec8566f5cb",
     "name": "VS code",
     "executablePath": "C:\\Users\\carya\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe",
@@ -20,5 +10,17 @@
     "name": "EDGE",
     "executablePath": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
     "iconUrl": "http://172.16.48.54:3000/app-icons/52027d3e-c627-43b0-a72f-17693c9ae363.png"
+  },
+  {
+    "id": "1891a697-7079-4c57-9ccc-b280f1450368",
+    "name": "GITHUB",
+    "executablePath": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\chrome_proxy.exe",
+    "iconUrl": "http://172.16.48.54:3000/app-icons/1891a697-7079-4c57-9ccc-b280f1450368.png"
+  },
+  {
+    "id": "36aa7bb5-6d4a-44a4-a6cf-10c32e8c20fd",
+    "name": "Brave",
+    "executablePath": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
+    "iconUrl": "http://172.16.48.54:3000/app-icons/36aa7bb5-6d4a-44a4-a6cf-10c32e8c20fd.png"
   }
 ]
