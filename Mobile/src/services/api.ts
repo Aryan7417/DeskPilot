@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://192.168.1.5:3000";
+const API_BASE_URL = "http://172.16.48.54:3000";
 
 const API_TOKEN = "pQahepv9dIrIPyFU0wzAbbr5xXqqUwuuLYPoBfqb2mlPtQvDSkdDmstXow0XI5rk";
 
