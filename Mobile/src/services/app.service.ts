@@ -6,6 +6,9 @@ export type DesktopApp = {
   executablePath: string;
 };
 
+import { getConnectionSettings } from "../services/connection.service";
+
+
 export async function getApps(): Promise<DesktopApp[]> {
   const result = await apiRequest<DesktopApp[] | { apps: DesktopApp[] }>(
     "/api/apps"
