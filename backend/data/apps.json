@@ -3,5 +3,30 @@
     "id": "47d6f9f7-976b-4d84-b533-d5e1b6f4a87a",
     "name": "brave",
     "executablePath": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
+  },
+  {
+    "id": "2ccd74e0-fbaf-4f5d-9a6d-b4514c403cdf",
+    "name": "Calculator",
+    "executablePath": "C:\\Windows\\System32\\calc.exe"
+  },
+  {
+    "id": "e2da80ca-887c-4b36-84ad-843e690a8f7c",
+    "name": "brave",
+    "executablePath": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
+  },
+  {
+    "id": "66bfcd7c-a9cc-4912-aa8d-437330539804",
+    "name": "Calculator",
+    "executablePath": "C:\\Windows\\System32\\calc.exe"
+  },
+  {
+    "id": "ab812264-b1ad-414f-bc03-a3600dc11534",
+    "name": "Calculator",
+    "executablePath": "C:\\Windows\\System32\\calc.exe"
+  },
+  {
+    "id": "f397159c-f2bd-4ea5-8859-85ec8d21191e",
+    "name": "Calculator",
+    "executablePath": "C:\\Windows\\System32\\calc.exe"
   }
 ]

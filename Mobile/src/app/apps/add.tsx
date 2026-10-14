@@ -1,6 +1,5 @@
 
 import React, { useState } from "react";
-import { addApp } from "../../services/app.service";
 import {
     View,
     Text,
@@ -11,6 +10,7 @@ import {
     Alert,
 } from "react-native";
 import { router } from "expo-router";
+import { addApp } from "../../services/app.service";
 
 const COLORS = {
     bg: "#0B0D12",
@@ -37,58 +37,40 @@ export default function AddAppScreen() {
     async function saveApp() {
         setSubmitted(true);
 
-        if (!name.trim() || !executablePath.trim() ||
-            !/^[a-zA-Z]:\\/.test(executablePath.trim())) {
+        const cleanName = name.trim();
+        const cleanPath = executablePath.trim();
+
+        if (!cleanName || !/^[a-zA-Z]:\\/.test(cleanPath)) {
             return;
         }
+
+        if (loading) return;
 
         setLoading(true);
 
         try {
-            // Backend integration next step mein add karenge.
+            await addApp(cleanName, cleanPath);
+
             Alert.alert(
-                "Form validated",
-                "Inputs sahi hain. Agle step mein backend se save karenge."
-            );
-        } finally {
-            setLoading(false);
-        }
-
-
-        async function saveApp() {
-            setSubmitted(true);
-
-            if (
-                !name.trim() ||
-                !executablePath.trim() ||
-                !/^[a-zA-Z]:\\/.test(executablePath.trim())
-            ) {
-                return;
-            }
-
-            setLoading(true);
-
-            try {
-                await addApp(name, executablePath);
-
-                Alert.alert("Success", "Application DeskPilot mein save ho gayi!", [
+                "Success",
+                "Application DeskPilot mein save ho gayi!",
+                [
                     {
                         text: "OK",
                         onPress: () => router.back(),
                     },
-                ]);
-            } catch (error) {
-                Alert.alert(
-                    "Unable to save",
-                    error instanceof Error
-                        ? error.message
-                        : "Backend se connection nahi ho paya."
-                );
-            } finally {
-                setLoading(false);
-            }
+                ]
+            );
+        } catch (error) {
+            Alert.alert(
+                "Unable to save",
+                error instanceof Error
+                    ? error.message
+                    : "Backend se connection nahi ho paya."
+            );
+        } finally {
+            setLoading(false);
         }
-
     }
 
     return (
@@ -112,13 +94,15 @@ export default function AddAppScreen() {
                 <TextInput
                     value={name}
                     onChangeText={setName}
-                    placeholder="e.g. Brave Browser"
+                    placeholder="e.g. Calculator"
                     placeholderTextColor={COLORS.muted}
                     style={[styles.input, nameError && styles.inputError]}
                     autoCapitalize="words"
                 />
                 {nameError && (
-                    <Text style={styles.error}>Application name is required.</Text>
+                    <Text style={styles.error}>
+                        Application name is required.
+                    </Text>
                 )}
 
                 <Text style={[styles.label, styles.secondLabel]}>
@@ -127,7 +111,7 @@ export default function AddAppScreen() {
                 <TextInput
                     value={executablePath}
                     onChangeText={setExecutablePath}
-                    placeholder={"C:\\Program Files\\App\\app.exe"}
+                    placeholder={"C:\\Windows\\System32\\calc.exe"}
                     placeholderTextColor={COLORS.muted}
                     style={[styles.input, pathError && styles.inputError]}
                     autoCapitalize="none"
@@ -135,7 +119,7 @@ export default function AddAppScreen() {
                 />
                 {pathError && (
                     <Text style={styles.error}>
-                        Enter a valid absolute Windows path.
+                        Enter a valid absolute Windows path, e.g. C:\Windows\System32\calc.exe
                     </Text>
                 )}
 
@@ -144,7 +128,9 @@ export default function AddAppScreen() {
                 </Text>
 
                 <View style={styles.tip}>
-                    <Text style={styles.tipTitle}>ⓘ  Finding the right path</Text>
+                    <Text style={styles.tipTitle}>
+                        ⓘ Finding the right path
+                    </Text>
                     <Text style={styles.tipText}>
                         Right-click the application's shortcut, choose Open file
                         location, then copy the full path of its executable.
@@ -154,23 +140,20 @@ export default function AddAppScreen() {
                 <Pressable
                     onPress={saveApp}
                     disabled={loading}
-                    style={styles.primary}
+                    style={[styles.primary, loading && { opacity: 0.6 }]}
                 >
                     <Text style={styles.primaryText}>
-                        {loading ? "Saving..." : "＋  Save application"}
+                        {loading ? "Saving..." : "＋ Save application"}
                     </Text>
                 </Pressable>
 
-                <Pressable
-                    onPress={() => router.back()}
-                    style={styles.cancel}
-                >
+                <Pressable onPress={() => router.back()} style={styles.cancel}>
                     <Text style={styles.cancelText}>Cancel</Text>
                 </Pressable>
             </View>
 
             <Text style={styles.footer}>
-                DESKPILOT  •  YOUR LAPTOP, UNDER YOUR CONTROL
+                DESKPILOT • YOUR LAPTOP, UNDER YOUR CONTROL
             </Text>
         </ScrollView>
     );

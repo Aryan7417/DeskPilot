@@ -1,5 +1,7 @@
 
-import React, { useState } from "react";
+import React, {
+    useState, useEffect
+} from "react";
 import {
     View,
     Text,
@@ -13,6 +15,10 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import {
+    getConnectionSettings,
+    saveConnectionSettings,
+} from "../services/connection.service";
 
 const C = {
     bg: "#0B0D12",
@@ -26,20 +32,45 @@ const C = {
 };
 
 export default function ConnectionScreen() {
-    const [ip, setIp] = useState("192.168.1.100");
+
+    const [ip, setIp] = useState("172.16.48.54");
     const [port, setPort] = useState("3000");
     const [connected, setConnected] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [connectionError, setConnectionError] = useState("");
+    const [lastChecked, setLastChecked] = useState("");
 
-    const handleConnect = () => {
+
+
+    useEffect(() => {
+        let active = true;
+
+        const loadSettings = async () => {
+            const settings = await getConnectionSettings();
+
+            if (active) {
+                setIp(settings.ip);
+                setPort(settings.port);
+            }
+        };
+
+        loadSettings();
+
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    const handleConnect = async () => {
         Keyboard.dismiss();
 
-        if (!ip.trim()) {
-            Alert.alert("IP address required", "Enter your laptop's IP address.");
+        const cleanIp = ip.trim();
+        const portNumber = Number(port);
+
+        if (!cleanIp) {
+            Alert.alert("IP required", "Enter your laptop's IP address.");
             return;
         }
-
-        const portNumber = Number(port);
 
         if (
             !Number.isInteger(portNumber) ||
@@ -50,24 +81,71 @@ export default function ConnectionScreen() {
             return;
         }
 
-        // UI demo only: no real laptop connection is made.
-        setLoading(true);
+        const baseUrl = `http://${cleanIp}:${portNumber}`;
 
-        setTimeout(() => {
-            setLoading(false);
+        setLoading(true);
+        setConnected(false);
+        setConnectionError("");
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+        try {
+            const response = await fetch(`${baseUrl}/health`, {
+                method: "GET",
+                headers: {
+                    Accept: "application/json",
+                },
+                signal: controller.signal,
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || data.success !== true) {
+                throw new Error(
+                    data.message || `Server returned HTTP ${response.status}`
+                );
+            }
+            await saveConnectionSettings({
+                ip: cleanIp,
+                port: String(portNumber),
+            });
+
             setConnected(true);
+            setLastChecked(new Date().toLocaleTimeString());
 
             Alert.alert(
-                "Demo connection",
-                "UI preview only. A real connection will be added when we integrate the backend."
+                "Connection successful",
+                `DeskPilot backend is online.\n\nServer: ${baseUrl}\nStatus: ${data.status || "online"}`
             );
-        }, 700);
+        } catch (error) {
+            setConnected(false);
+
+            const message =
+                error instanceof Error && error.name === "AbortError"
+                    ? "Connection timed out. Check the laptop IP, port and network."
+                    : error instanceof Error
+                        ? error.message
+                        : "Unable to connect to the backend.";
+
+            setConnectionError(message);
+
+            Alert.alert("Connection failed", message);
+        } finally {
+            clearTimeout(timeoutId);
+            setLoading(false);
+        }
     };
 
     const handleDisconnect = () => {
         setConnected(false);
-        Alert.alert("Disconnected", "Demo connection has been stopped.");
+        setConnectionError("");
+        Alert.alert(
+            "Disconnected",
+            "The connection status has been cleared."
+        );
     };
+
 
     return (
         <View style={s.screen}>
@@ -129,7 +207,11 @@ export default function ConnectionScreen() {
                                     connected && { color: C.green },
                                 ]}
                             >
-                                {connected ? "Connected (Demo)" : "Not connected"}
+                                {loading
+                                    ? "Checking server..."
+                                    : connected
+                                        ? "Connected"
+                                        : "Not connected"}
                             </Text>
                         </View>
 
@@ -145,7 +227,7 @@ export default function ConnectionScreen() {
                                     connected && { color: C.green },
                                 ]}
                             >
-                                {connected ? "DEMO" : "OFFLINE"}
+                                {loading ? "CHECKING" : connected ? "ONLINE" : "OFFLINE"}
                             </Text>
                         </View>
                     </View>
