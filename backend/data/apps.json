@@ -10,31 +10,6 @@
     "executablePath": "C:\\Windows\\System32\\calc.exe"
   },
   {
-    "id": "e2da80ca-887c-4b36-84ad-843e690a8f7c",
-    "name": "brave",
-    "executablePath": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
-  },
-  {
-    "id": "66bfcd7c-a9cc-4912-aa8d-437330539804",
-    "name": "Calculator",
-    "executablePath": "C:\\Windows\\System32\\calc.exe"
-  },
-  {
-    "id": "ab812264-b1ad-414f-bc03-a3600dc11534",
-    "name": "Calculator",
-    "executablePath": "C:\\Windows\\System32\\calc.exe"
-  },
-  {
-    "id": "f397159c-f2bd-4ea5-8859-85ec8d21191e",
-    "name": "Calculator",
-    "executablePath": "C:\\Windows\\System32\\calc.exe"
-  },
-  {
-    "id": "55c5e061-0220-4ce5-acc3-cea0094bd459",
-    "name": "edge",
-    "executablePath": "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Microsoft Edge"
-  },
-  {
     "id": "e2619452-3da8-4d76-b936-740e13db45e3",
     "name": "MS edge",
     "executablePath": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
