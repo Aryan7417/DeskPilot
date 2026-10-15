@@ -7,7 +7,7 @@ const PIN_SALT_KEY = "deskpilot_pin_salt";
 const FAILED_ATTEMPTS_KEY = "deskpilot_pin_failed_attempts";
 const LOCKED_UNTIL_KEY = "deskpilot_pin_locked_until";
 
-const PIN_LENGTH = 6;
+const PIN_LENGTH = 4;
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 30_000;
 
@@ -22,9 +22,6 @@ async function hashPin(pin: string, salt: string): Promise<string> {
   );
 }
 
-/**
- * Checks whether a PIN has already been configured.
- */
 export async function hasPin(): Promise<boolean> {
   const hash = await SecureStore.getItemAsync(PIN_HASH_KEY);
   const salt = await SecureStore.getItemAsync(PIN_SALT_KEY);
@@ -32,13 +29,9 @@ export async function hasPin(): Promise<boolean> {
   return Boolean(hash && salt);
 }
 
-/**
- * Saves a new 6-digit PIN as a salted hash.
- * Never stores the original PIN.
- */
 export async function savePin(pin: string): Promise<void> {
   if (!isValidPin(pin)) {
-    throw new Error("PIN must contain exactly 6 digits.");
+    throw new Error("PIN must contain exactly 4 digits.");
   }
 
   const salt = Crypto.randomUUID();
@@ -50,10 +43,6 @@ export async function savePin(pin: string): Promise<void> {
   await SecureStore.deleteItemAsync(LOCKED_UNTIL_KEY);
 }
 
-/**
- * Verifies a PIN and applies a temporary lockout
- * after repeated incorrect attempts.
- */
 export async function verifyPin(pin: string): Promise<boolean> {
   if (!isValidPin(pin)) {
     return false;
@@ -79,7 +68,9 @@ export async function verifyPin(pin: string): Promise<boolean> {
   const savedHash = await SecureStore.getItemAsync(PIN_HASH_KEY);
 
   if (!salt || !savedHash) {
-    throw new Error("No PIN configured. Please set up your PIN first.");
+    throw new Error(
+      "No PIN configured. Please set up your PIN first."
+    );
   }
 
   const enteredHash = await hashPin(pin, salt);
@@ -120,9 +111,6 @@ export async function verifyPin(pin: string): Promise<boolean> {
   return false;
 }
 
-/**
- * Changes the PIN only after verifying the current PIN.
- */
 export async function changePin(
   currentPin: string,
   newPin: string
@@ -134,17 +122,12 @@ export async function changePin(
   }
 
   if (!isValidPin(newPin)) {
-    throw new Error("New PIN must contain exactly 6 digits.");
+    throw new Error("New PIN must contain exactly 4 digits.");
   }
 
   await savePin(newPin);
 }
 
-/**
- * Removes the locally stored PIN.
- * Call only after the user has been authenticated
- * and your app's security flow allows a PIN reset.
- */
 export async function removePin(): Promise<void> {
   await SecureStore.deleteItemAsync(PIN_HASH_KEY);
   await SecureStore.deleteItemAsync(PIN_SALT_KEY);

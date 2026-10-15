@@ -19,44 +19,35 @@ const C = {
   red: "#F97066",
 };
 
+const FIXED_PIN = "7417";
+const PIN_LENGTH = 4;
+
 export default function LockScreen() {
   const [pin, setPin] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   function pressKey(key: string) {
     if (key === "delete") {
       setPin((current) => current.slice(0, -1));
+      setError("");
       return;
     }
 
-    if (pin.length >= 4 || loading) return;
+    if (!/^\d$/.test(key) || pin.length >= PIN_LENGTH) {
+      return;
+    }
 
     const nextPin = pin + key;
     setPin(nextPin);
+    setError("");
 
-    if (nextPin.length === 4) {
-      setLoading(true);
-
-      // UI preview only: actual PIN verification baad mein.
-      setTimeout(() => {
-        setLoading(false);
+    if (nextPin.length === PIN_LENGTH) {
+      if (nextPin === FIXED_PIN) {
+        router.replace("/(tabs)");
+      } else {
         setPin("");
-
-        Alert.alert(
-          "Demo PIN",
-          "PIN verification abhi connect nahi hai. Dashboard preview khol rahe hain.",
-          [
-            {
-              text: "Continue",
-              onPress: () => router.replace("/(tabs)"),
-            },
-            {
-              text: "Cancel",
-              style: "cancel",
-            },
-          ]
-        );
-      }, 250);
+        setError("Incorrect PIN. Please try again.");
+      }
     }
   }
 
@@ -66,8 +57,11 @@ export default function LockScreen() {
         <View style={s.logo}>
           <Text style={s.logoText}>D</Text>
         </View>
+
         <Text style={s.brand}>DESKPILOT</Text>
-        <Text style={s.tagline}>YOUR LAPTOP, UNDER YOUR CONTROL</Text>
+        <Text style={s.tagline}>
+          YOUR LAPTOP, UNDER YOUR CONTROL
+        </Text>
       </View>
 
       <View style={s.center}>
@@ -93,45 +87,51 @@ export default function LockScreen() {
         </View>
 
         <View style={s.keypad}>
-          {["1", "2", "3", "4", "5", "6", "7", "8", "9", "help", "0", "delete"].map(
-            (key) => (
-              <Pressable
-                key={key}
-                style={s.key}
-                onPress={() => {
-                  if (key === "help") {
-                    router.push("/setup-pin");
-                  } else {
-                    pressKey(key);
-                  }
-                }}
-              >
-                <Text style={s.keyText}>
-                  {key === "delete"
-                    ? "⌫"
-                    : key === "help"
-                      ? "?"
-                      : key}
-                </Text>
-              </Pressable>
-            )
-          )}
+          {[
+            "1", "2", "3",
+            "4", "5", "6",
+            "7", "8", "9",
+            "help", "0", "delete",
+          ].map((key) => (
+            <Pressable
+              key={key}
+              style={s.key}
+              onPress={() => {
+                if (key === "help") {
+                  Alert.alert(
+                    "DeskPilot",
+                    "Enter your configured 4-digit PIN."
+                  );
+                } else {
+                  pressKey(key);
+                }
+              }}
+            >
+              <Text style={s.keyText}>
+                {key === "delete"
+                  ? "⌫"
+                  : key === "help"
+                    ? "?"
+                    : key}
+              </Text>
+            </Pressable>
+          ))}
         </View>
 
-        <Pressable
-          onPress={() => router.push("/setup-pin")}
-          style={s.forgot}
-        >
-          <Text style={s.forgotText}>Forgot PIN?  Set up again</Text>
-        </Pressable>
+        {!!error && <Text style={s.error}>{error}</Text>}
       </View>
 
       <View style={s.bottom}>
         <View style={s.secureRow}>
           <Text style={s.secureIcon}>◆</Text>
-          <Text style={s.secureText}>YOUR ACCESS, YOUR CONTROL</Text>
+          <Text style={s.secureText}>
+            YOUR ACCESS, YOUR CONTROL
+          </Text>
         </View>
-        <Text style={s.version}>DESKPILOT • UI PREVIEW</Text>
+
+        <Text style={s.version}>
+          DESKPILOT • SECURE ACCESS
+        </Text>
       </View>
     </View>
   );
@@ -157,7 +157,11 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  logoText: { color: C.purple, fontSize: 27, fontWeight: "900" },
+  logoText: {
+    color: C.purple,
+    fontSize: 27,
+    fontWeight: "900",
+  },
   brand: {
     color: C.white,
     fontSize: 17,
@@ -184,7 +188,11 @@ const s = StyleSheet.create({
     marginBottom: 22,
   },
   lockEmoji: { color: C.purple, fontSize: 36 },
-  title: { color: C.white, fontSize: 25, fontWeight: "800" },
+  title: {
+    color: C.white,
+    fontSize: 25,
+    fontWeight: "800",
+  },
   subtitle: {
     color: C.muted,
     fontSize: 12,
@@ -227,11 +235,23 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  keyText: { color: C.white, fontSize: 21, fontWeight: "600" },
-  forgot: { marginTop: 24, padding: 8 },
-  forgotText: { color: C.purple, fontSize: 12, fontWeight: "600" },
+  keyText: {
+    color: C.white,
+    fontSize: 21,
+    fontWeight: "600",
+  },
+  error: {
+    color: C.red,
+    fontSize: 12,
+    marginTop: 16,
+    textAlign: "center",
+  },
   bottom: { alignItems: "center" },
-  secureRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  secureRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   secureIcon: { color: C.purple, fontSize: 10 },
   secureText: {
     color: C.muted,
@@ -246,4 +266,3 @@ const s = StyleSheet.create({
     letterSpacing: 1,
   },
 });
-
