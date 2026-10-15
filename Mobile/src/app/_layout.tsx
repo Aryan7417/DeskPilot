@@ -98,9 +98,9 @@ export default function RootLayout() {
 
     if (!configured) {
       // A new installation must set up a PIN first.
-      if (!isSetupRoute) {
-        router.replace("/setup-pin");
-      }
+      // if (!isSetupRoute) {
+      //   router.replace("/setup-pin");
+      // }
 
       return;
     }
