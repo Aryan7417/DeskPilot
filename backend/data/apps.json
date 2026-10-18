@@ -52,5 +52,17 @@
     "name": "brave",
     "executablePath": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
     "iconUrl": "http://localhost:3000/app-icons/212bfa34-cb1a-4a5c-be86-f9cb0c2d6aca.png"
+  },
+  {
+    "id": "ba0c6617-a4c3-43bc-a176-f2c61d3b88aa",
+    "name": "VS Code",
+    "executablePath": "C:\\Users\\carya\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe",
+    "iconUrl": "http://localhost:3000/app-icons/ba0c6617-a4c3-43bc-a176-f2c61d3b88aa.png"
+  },
+  {
+    "id": "3df47306-4b58-4013-a082-88a927cdd66e",
+    "name": "VS Code",
+    "executablePath": "C:\\Users\\carya\\AppData\\Local\\Programs\\Microsoft VS Code\\Cde.exe",
+    "iconUrl": null
   }
 ]
