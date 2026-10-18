@@ -22,5 +22,35 @@
     "name": "Brave",
     "executablePath": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
     "iconUrl": "http://172.16.48.54:3000/app-icons/36aa7bb5-6d4a-44a4-a6cf-10c32e8c20fd.png"
+  },
+  {
+    "id": "0211a1ae-859d-4b02-a9a2-af0169f3c730",
+    "name": "brave",
+    "executablePath": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
+    "iconUrl": "http://localhost:3000/app-icons/0211a1ae-859d-4b02-a9a2-af0169f3c730.png"
+  },
+  {
+    "id": "3611a968-a914-4aff-9aef-cf5ece041094",
+    "name": "brave",
+    "executablePath": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
+    "iconUrl": "http://localhost:3000/app-icons/3611a968-a914-4aff-9aef-cf5ece041094.png"
+  },
+  {
+    "id": "7e12b02a-54cf-4553-a7d7-15d2ae2e53ff",
+    "name": "brave",
+    "executablePath": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brae.exe",
+    "iconUrl": null
+  },
+  {
+    "id": "c3996575-cde7-4962-b03f-efa19569e117",
+    "name": "brave",
+    "executablePath": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brae.exe",
+    "iconUrl": null
+  },
+  {
+    "id": "212bfa34-cb1a-4a5c-be86-f9cb0c2d6aca",
+    "name": "brave",
+    "executablePath": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
+    "iconUrl": "http://localhost:3000/app-icons/212bfa34-cb1a-4a5c-be86-f9cb0c2d6aca.png"
   }
 ]

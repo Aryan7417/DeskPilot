@@ -103,17 +103,30 @@ async function addApp(req, res) {
       });
     }
 
-    const normalizedPath = path.normalize(executablePath);
+    // const normalizedPath = path.normalize(executablePath);
+
+    // if (
+    //   path.extname(normalizedPath).toLowerCase() !== ".exe" ||
+    //   !fs.existsSync(normalizedPath)
+    // )
 
     if (
-      path.extname(normalizedPath).toLowerCase() !== ".exe" ||
-      !fs.existsSync(normalizedPath)
+      !path.win32.isAbsolute(executablePath) ||
+      path.win32.extname(executablePath).toLowerCase() !== ".exe"
     ) {
       return res.status(400).json({
         success: false,
-        message: "Executable .exe file does not exist",
+        message: "A valid absolute Windows .exe path is required",
       });
     }
+
+    const normalizedPath = path.win32.normalize(executablePath);
+    //{
+    // return res.status(400).json({
+    //   success: false,
+    //   message: "Executable .exe file does not exist",
+    // });
+    //}
 
     const apps = readApps();
 
