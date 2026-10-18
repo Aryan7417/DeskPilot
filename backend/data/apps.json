@@ -1,1 +1,8 @@
-[]
+[
+  {
+    "id": "b437be23-59a1-4efe-aa2d-2ec24fe989ba",
+    "name": "VS Code",
+    "executablePath": "C:\\Users\\carya\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe",
+    "iconUrl": "http://localhost:3000/app-icons/b437be23-59a1-4efe-aa2d-2ec24fe989ba.png"
+  }
+]

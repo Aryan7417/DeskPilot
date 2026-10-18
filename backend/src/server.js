@@ -69,7 +69,7 @@ const appRoutes = require("./routes/app.routes");
 const clipboardRoutes = require("./routes/clipboard.routes");
 const { startClipboardMonitor } = require("./controllers/clipboard.controller");
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000
 
 app.use(express.json({ limit: "10kb" }));
 
