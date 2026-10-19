@@ -6,7 +6,7 @@ const crypto = require("crypto");
 
 const appsFile = path.join(__dirname, "../../data/apps.json");
 const iconsDir = path.join(__dirname, "../../public/app-icons");
-const { enqueueLaunch } = require("../utils/agentQueue");
+const { enqueueLaunch } = require("../utils/agentQueur");
 
 function readApps() {
   return JSON.parse(fs.readFileSync(appsFile, "utf8"));

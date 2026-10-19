@@ -1,5 +1,65 @@
 [
   {
+    "id": "99684dea-1ffb-48df-95ae-09b5fe89d5c5",
+    "text": "git add .",
+    "createdAt": "2026-10-19T07:21:50.151Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "7e6fb8d0-cc4c-4ed4-b2e6-45ef685c9ffd",
+    "text": "https://deskpilot-259y.onrender.com/api/agent/commands/next",
+    "createdAt": "2026-10-19T07:21:05.345Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "7691d5e1-82e4-4da1-82a4-2324622be498",
+    "text": " F:\\APPdevelopmentt\\DeskPliot\\agent> node agent.js\r\n◇ injected env (2) from .env\r\nDeskPilot Windows Agent started.\r\nBackend: https://deskpilot-259y.onrender.com\r\nConfigured apps: 1\r\nPolling error: API 404: Request failed\r\nPolling error: API 404: Request failed\r\nPolling error: API 404: Request failed\r\nPolling error: API 404: Request failed\r\nPolling error: API 404: Request fa",
+    "createdAt": "2026-10-19T07:20:15.557Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "9fdd5a5a-6984-4f6d-9947-2d9cb28962f3",
+    "text": " F:\\APPdevelopmentt\\DeskPliot> node agent.js\r\nnode:internal/modules/cjs/loader:1503\r\n  throw err;\r\n  ^\r\n\r\nError: Cannot find module 'F:\\APPdevelopmentt\\DeskPliot\\agent.js'\r\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)\r\n    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)\r\n    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)\r\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)\r\n    at Module._load (node:internal/modules/cjs/loader:1285:25)\r\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\r\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\r\n    at node:internal/main/run_main_module:33:47 {\r\n  code: 'MODULE_NOT_FOUND',\r\n  requireStack: []\r\n}\r\n\r\nNode.js v24.17.0\r\nPS F:\\APPdevelopmentt\\DeskPliot> ",
+    "createdAt": "2026-10-19T07:19:27.441Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "59845c32-640b-4e7f-86a0-44fc50f764e9",
+    "text": "b437be23-59a1-4efe-aa2d-2ec24fe989ba",
+    "createdAt": "2026-10-19T07:18:39.381Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "6cd35fac-92cc-4585-8f5e-dd0dd8455170",
+    "text": "[\r\n  {\r\n    \"id\": \"YOUR_RENDER_VSCODE_APP_ID\",\r\n    \"name\": \"VS Code\",\r\n    \"path\": \"C:\\\\Users\\\\carya\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\Code.exe\"\r\n  }\r\n]",
+    "createdAt": "2026-10-19T07:18:22.275Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "0063af94-bf0f-4109-9c2a-40e6c797ac7d",
+    "text": "\r\nrequire(\"dotenv\").config();\r\n\r\nconst fs = require(\"fs\");\r\nconst path = require(\"path\");\r\nconst { spawn } = require(\"child_process\");\r\n\r\nconst SERVER_URL = (\r\n  process.env.DESKPILOT_SERVER_URL || \"\"\r\n).replace(/\\/+$/, \"\");\r\n\r\nconst AGENT_TOKEN = process.env.DESKPILOT_AGENT_TOKEN;\r\n\r\nconst APPS_FILE = path.join(__dirname, \"apps.local.json\");\r\nconst POLL_INTERVAL = 3000;\r\n\r\nif (!SERVER_URL || !AGENT_TOKEN) {\r\n  console.error(\r\n    \"Missing DESKPILOT_SERVER_URL or DESKPILOT_AGENT_TOKEN in .env\"\r\n  );\r\n  process.exit(1);\r\n}\r\n\r\nif (process.platform !== \"win32\") {\r\n  console.error(\"DeskPilot Agent must run on Windows.\");\r\n  process.exit(1);\r\n}\r\n\r\nfunction loadApps() {\r\n  const data = JSON.parse(fs.readFileSync(APPS_FILE, \"utf8\"));\r\n\r\n  if (!Array.isArray(data)) {\r\n    throw new Error(\"apps.local.json must contain an array\");\r\n  }\r\n\r\n  return data;\r\n}\r\n\r\nasync function apiRequest(endpoint, options = {}) {\r\n  const response = await fetch(`${SERVER_URL}${endpoint}`, {\r\n    ...options,\r\n    headers: {\r\n      Authorization: `Bearer ${AGENT_TOKEN}`,\r\n      \"Content-Type\": \"application/json\",\r\n      ...options.headers,\r\n    },\r\n    signal: AbortSignal.timeout(15000),\r\n  });\r\n\r\n  const data = await response.json().catch(() => ({}));\r\n\r\n  if (!response.ok) {\r\n    throw new Error(\r\n      `API ${response.status}: ${data.message || \"Request failed\"}`\r\n    );\r\n  }\r\n\r\n  return data;\r\n}\r\n\r\nfunction launchApplication(app) {\r\n  return new Promise((resolve, reject) => {\r\n    if (\r\n      typeof app.path !== \"string\" ||\r\n      !path.win32.isAbsolute(app.path) ||\r\n      path.win32.extname(app.path).toLowerCase() !== \".exe\"\r\n    ) {\r\n      return reject(new Error(\"Invalid executable path\"));\r\n    }\r\n\r\n    if (!fs.existsSync(app.path)) {\r\n      return reject(new Error(\"Executable not found on this laptop\"));\r\n    }\r\n\r\n    const child = spawn(app.path, [], {\r\n      shell: false,\r\n      detached: true,\r\n      stdio: \"ignore\",\r\n      windowsHide: false,\r\n    });\r\n\r\n    child.once(\"error\", reject);\r\n\r\n    child.once(\"spawn\", () => {\r\n      child.unref();\r\n      resolve();\r\n    });\r\n  });\r\n}\r\n\r\nasync function reportResult(commandId, success, message) {\r\n  return apiRequest(\r\n    `/api/agent/commands/${encodeURIComponent(commandId)}/result`,\r\n    {\r\n      method: \"POST\",\r\n      body: JSON.stringify({ success, message }),\r\n    }\r\n  );\r\n}\r\n\r\nasync function processCommand(command) {\r\n  if (\r\n    !command ||\r\n    typeof command.id !== \"string\" ||\r\n    command.type !== \"launch\" ||\r\n    !command.app ||\r\n    typeof command.app.id !== \"string\"\r\n  ) {\r\n    console.error(\"Received an invalid command.\");\r\n    return;\r\n  }\r\n\r\n  let result = {\r\n    success: false,\r\n    message: \"Launch failed\",\r\n  };\r\n\r\n  try {\r\n    const apps = loadApps();\r\n\r\n    // Only launch apps explicitly configured in the local allowlist.\r\n    const app = apps.find(\r\n      (item) => item.id === command.app.id\r\n    );\r\n\r\n    if (!app) {\r\n      throw new Error(\r\n        `App ID ${command.app.id} is not in apps.local.json`\r\n      );\r\n    }\r\n\r\n    await launchApplication(app);\r\n\r\n    result = {\r\n      success: true,\r\n      message: `${app.name} launched successfully`,\r\n    };\r\n\r\n    console.log(result.message);\r\n  } catch (error) {\r\n    result.message = error.message;\r\n    console.error(\"Launch failed:\", error.message);\r\n  }\r\n\r\n  try {\r\n    await reportResult(command.id, result.success, result.message);\r\n    console.log(\"Command result reported to Render.\");\r\n  } catch (error) {\r\n    console.error(\"Could not report command result:\", error.message);\r\n  }\r\n}\r\n\r\nasync function poll() {\r\n  try {\r\n    const data = await apiRequest(\"/api/agent/commands/next\");\r\n\r\n    if (data.command) {\r\n      console.log(\"Received launch command:\", data.command.id);\r\n      await processCommand(data.command);\r\n    }\r\n  } catch (error) {\r\n    console.error(\"Polling error:\", error.message);\r\n  }\r\n}\r\n\r\nasync function start() {\r\n  loadApps();\r\n\r\n  console.log(\"DeskPilot Windows Agent started.\");\r\n  console.log(\"Backend:\", SERVER_URL);\r\n  console.log(\"Configured apps:\", loadApps().length);\r\n\r\n  while (true) {\r\n    await poll();\r\n    await new Promise((resolve) =>\r\n      setTimeout(resolve, POLL_INTERVAL)\r\n    );\r\n  }\r\n}\r\n\r\nstart().catch((error) => {\r\n  console.error(\"Agent startup failed:\", error.message);\r\n  process.exit(1);\r\n});\r\n",
+    "createdAt": "2026-10-19T07:18:03.465Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "19a980fe-1fc4-44f8-a59b-8497ee40e63e",
+    "text": "pQahepv9dIrIPyFU0wzAbbr5xXqqUwuuLYPoBfqb2mlPtQvDSkdDmstXow0XI5rk",
+    "createdAt": "2026-10-19T07:16:45.086Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "c1affbfd-1ea5-4345-8842-8204a46b6171",
+    "text": "$token = \"YOUR_DESKPILOT_TOKEN\"\r\n\r\nInvoke-RestMethod `\r\n  -Uri \"https://deskpilot-259y.onrender.com/api/apps\" `\r\n  -Headers @{ Authorization = \"Bearer $token\" }",
+    "createdAt": "2026-10-19T07:16:30.305Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "efe2516f-2d20-44b1-894e-fb9bd66b3427",
+    "text": "\r\nfunction launchApp(req, res) {\r\n  try {\r\n    const apps = readApps();\r\n    const app = apps.find((item) => item.id === req.params.id);\r\n\r\n    if (!app) {\r\n      return res.status(404).json({\r\n        success: false,\r\n        message: \"Application not found\",\r\n      });\r\n    }\r\n\r\n    // Render/Linux: queue command for the Windows Agent.\r\n    if (process.platform !== \"win32\") {\r\n      const command = enqueueLaunch(app);\r\n\r\n      return res.status(202).json({\r\n        success: true,\r\n        message: `${app.name} launch command queued`,\r\n        commandId: command.id,\r\n        status: command.status,\r\n        app: {\r\n          id: app.id,\r\n          name: app.name,\r\n        },\r\n      });\r\n    }\r\n\r\n    // Local Windows backend: launch directly.\r\n    if (\r\n      typeof app.executablePath !== \"string\" ||\r\n      !path.win32.isAbsolute(app.executablePath) ||\r\n      path.win32.extname(app.executablePath).toLowerCase() !== \".exe\" ||\r\n      !fs.existsSync(app.executablePath)\r\n    ) {\r\n      return res.status(400).json({\r\n        success: false,\r\n        message: \"Configured executable is invalid or missing\",\r\n      });\r\n    }\r\n\r\n    const child = spawn(app.executablePath, [], {\r\n      shell: false,\r\n      detached: true,\r\n      stdio: \"ignore\",\r\n      windowsHide: false,\r\n    });\r\n\r\n    child.once(\"error\", (error) => {\r\n      console.error(\"Launch error:\", error.message);\r\n    });\r\n\r\n    child.once(\"spawn\", () => {\r\n      child.unref();\r\n    });\r\n\r\n    return res.status(202).json({\r\n      success: true,\r\n      message: `${app.name} launch requested`,\r\n      app: {\r\n        id: app.id,\r\n        name: app.name,\r\n      },\r\n    });\r\n  } catch (error) {\r\n    console.error(\"Launch error:\", error.message);\r\n\r\n    return res.status(500).json({\r\n      success: false,\r\n      message: \"Application launch failed\",\r\n    });\r\n  }\r\n}\r\n",
+    "createdAt": "2026-10-19T07:15:27.543Z",
+    "source": "Laptop"
+  },
+  {
     "id": "bfa215ad-542f-41c1-b07e-7e01b791f100",
     "text": "const { enqueueLaunch } = require(\"../utils/agentQueue\");",
     "createdAt": "2026-10-19T07:12:50.882Z",
@@ -237,66 +297,6 @@
     "id": "269d2730-8c08-410d-bc4d-08904e2615ef",
     "text": "875078a1-0bb3-4505-819c-18572fd4f318",
     "createdAt": "2026-10-18T18:33:14.441Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "cd22db8f-eb55-4b20-8b47-e409cc85058c",
-    "text": "212bfa34-cb1a-4a5c-be86-f9cb0c2d6aca",
-    "createdAt": "2026-10-18T11:35:58.617Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "a7207c37-8f80-4726-a9de-085c3519c97e",
-    "text": "ba0c6617-a4c3-43bc-a176-f2c61d3b88aa",
-    "createdAt": "2026-10-18T11:35:47.197Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "f4ee1928-f706-4a56-892b-d288e24d998f",
-    "text": "3df47306-4b58-4013-a082-88a927cdd66e",
-    "createdAt": "2026-10-18T11:35:28.435Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "57378355-4d75-447d-8c1e-351d5316900d",
-    "text": "3453730b-d651-4b11-80a8-c8a334854248",
-    "createdAt": "2026-10-18T11:35:16.066Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "9eef172d-02ad-43fd-afa3-b7051f740017",
-    "text": "c3996575-cde7-4962-b03f-efa19569e117",
-    "createdAt": "2026-10-18T11:34:57.271Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "bb601830-95ca-4c7d-9d6f-07875fb8117b",
-    "text": "7e12b02a-54cf-4553-a7d7-15d2ae2e53ff",
-    "createdAt": "2026-10-18T11:34:42.533Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "14aa9232-9089-4099-a9ac-3b5e71f930d0",
-    "text": "3611a968-a914-4aff-9aef-cf5ece041094",
-    "createdAt": "2026-10-18T11:34:31.082Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "dc594018-368f-4660-8ee5-b4da4be876c2",
-    "text": "0211a1ae-859d-4b02-a9a2-af0169f3c730",
-    "createdAt": "2026-10-18T11:34:19.677Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "e676bc09-0a29-4a3d-bb21-12c42b8893a4",
-    "text": "36aa7bb5-6d4a-44a4-a6cf-10c32e8c20fd",
-    "createdAt": "2026-10-18T11:34:08.186Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "869e149d-7756-4e4a-a726-0a259128d4d9",
-    "text": "1891a697-7079-4c57-9ccc-b280f1450368",
-    "createdAt": "2026-10-18T11:33:58.276Z",
     "source": "Laptop"
   }
 ]

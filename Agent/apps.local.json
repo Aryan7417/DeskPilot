@@ -1,13 +1,7 @@
-
 [
   {
-    "id": "vscode",
+    "id": "b437be23-59a1-4efe-aa2d-2ec24fe989ba",
     "name": "VS Code",
     "path": "C:\\Users\\carya\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe"
-  },
-  {
-    "id": "edge",
-    "name": "Microsoft Edge",
-    "path": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
   }
 ]
