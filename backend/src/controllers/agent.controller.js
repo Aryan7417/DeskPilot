@@ -4,6 +4,9 @@ const {
   completeCommand,
 } = require("../utils/agentQueur");
 
+// Agent heartbeat timestamp (in-memory)
+let lastHeartbeat = null;
+
 // GET /api/agent/commands/next
 function getCommand(req, res) {
   try {
@@ -64,7 +67,35 @@ function reportResult(req, res) {
   }
 }
 
+// POST /api/agent/heartbeat
+function heartbeat(req, res) {
+  lastHeartbeat = Date.now();
+
+  return res.status(200).json({
+    success: true,
+    message: "Heartbeat received",
+  });
+}
+
+// GET /api/agent/status
+function getAgentStatus(req, res) {
+  const timeoutMs = 30000;
+  const online =
+    lastHeartbeat !== null &&
+    Date.now() - lastHeartbeat < timeoutMs;
+
+  return res.status(200).json({
+    success: true,
+    online,
+    lastSeen: lastHeartbeat
+      ? new Date(lastHeartbeat).toISOString()
+      : null,
+  });
+}
+
 module.exports = {
   getCommand,
   reportResult,
+  heartbeat,
+  getAgentStatus,
 };

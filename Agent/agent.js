@@ -247,6 +247,24 @@ function startRemoteClipboardMonitor() {
 
 
 
+
+async function heartbeatLoop() {
+  while (true) {
+    try {
+      await apiRequest("/api/agent/heartbeat", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+    } catch (error) {
+      console.error("Heartbeat failed:", error.message);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+  }
+}
+
+
+
 async function poll() {
 
 
@@ -268,8 +286,9 @@ async function start() {
   console.log("DeskPilot Windows Agent started.");
   console.log("Backend:", SERVER_URL);
   console.log("App list will be resolved from each received command.");
-
+  
   startRemoteClipboardMonitor();
+  heartbeatLoop();
 
   while (true) {
     await poll();
