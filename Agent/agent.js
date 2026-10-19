@@ -40,8 +40,7 @@ async function apiRequest(endpoint, options = {}) {
   return data;
 }
 
-// Resolve only known, trusted applications on this Windows laptop.
-// Cloud-provided executable paths are deliberately not executed directly.
+
 function findLocalExecutable(app) {
   const roots = [
     process.env.ProgramFiles,
