@@ -290,6 +290,7 @@ async function start() {
   startRemoteClipboardMonitor();
   heartbeatLoop();
 
+  //thsis is te u e
   while (true) {
     await poll();
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
