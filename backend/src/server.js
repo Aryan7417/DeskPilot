@@ -67,7 +67,7 @@ const app = express();
 const authenticate = require("./middleware/auth");
 const appRoutes = require("./routes/app.routes");
 const clipboardRoutes = require("./routes/clipboard.routes");
-const { startClipboardMonitor } = require("./controllers/clipboard.controller");
+//const { startClipboardMonitor } = require("./controllers/clipboard.controller");
 const agentRoutes = require("./routes/agent.routes");
 
 const PORT = process.env.PORT || 3000
@@ -120,5 +120,5 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`Health check: http://localhost:${PORT}/health`);
 
   // Must run in the logged-in Windows desktop session to access its clipboard.
-  startClipboardMonitor();
+  //startClipboardMonitor();
 });
