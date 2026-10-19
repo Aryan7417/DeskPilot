@@ -6,6 +6,7 @@ const crypto = require("crypto");
 
 const appsFile = path.join(__dirname, "../../data/apps.json");
 const iconsDir = path.join(__dirname, "../../public/app-icons");
+const { enqueueLaunch } = require("../utils/agentQueue");
 
 function readApps() {
   return JSON.parse(fs.readFileSync(appsFile, "utf8"));
@@ -132,6 +133,82 @@ async function addApp(req, res) {
   }
 }
 
+// function launchApp(req, res) {
+//   try {
+//     const apps = readApps();
+//     const app = apps.find((item) => item.id === req.params.id);
+
+//     if (!app) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Application not found",
+//       });
+//     }
+
+//     // This endpoint can launch apps only on the machine running this process.
+//     // A Render-hosted process cannot launch an executable on your Windows laptop.
+//     if (process.platform !== "win32") {
+//       return res.status(501).json({
+//         success: false,
+//         message: "Remote launch requires a Windows DeskPilot agent on your laptop",
+//       });
+//     }
+
+//     if (
+//       typeof app.executablePath !== "string" ||
+//       !path.win32.isAbsolute(app.executablePath) ||
+//       path.win32.extname(app.executablePath).toLowerCase() !== ".exe" ||
+//       !fs.existsSync(app.executablePath)
+//     ) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Configured executable is invalid or missing on this machine",
+//       });
+//     }
+
+//     const child = spawn(app.executablePath, [], {
+//       shell: false,
+//       detached: true,
+//       stdio: "ignore",
+//       windowsHide: false,
+//     });
+
+//     child.once("error", (error) => {
+//       console.error("Launch error:", error.message);
+
+//       if (!res.headersSent) {
+//         res.status(500).json({
+//           success: false,
+//           message: "Could not launch application",
+//         });
+//       }
+//     });
+
+//     child.once("spawn", () => {
+//       if (!res.headersSent) {
+//         res.status(200).json({
+//           success: true,
+//           message: `${app.name} launch requested`,
+//           app: { id: app.id, name: app.name },
+//         });
+//       }
+
+//       child.unref();
+//     });
+//   } catch (error) {
+//     console.error("Launch error:", error.message);
+
+//     if (!res.headersSent) {
+//       return res.status(500).json({
+//         success: false,
+//         message: "Application launch failed",
+//       });
+//     }
+//   }
+// }
+
+
+
 function launchApp(req, res) {
   try {
     const apps = readApps();
@@ -144,15 +221,23 @@ function launchApp(req, res) {
       });
     }
 
-    // This endpoint can launch apps only on the machine running this process.
-    // A Render-hosted process cannot launch an executable on your Windows laptop.
+    // Render/Linux: queue command for the Windows Agent.
     if (process.platform !== "win32") {
-      return res.status(501).json({
-        success: false,
-        message: "Remote launch requires a Windows DeskPilot agent on your laptop",
+      const command = enqueueLaunch(app);
+
+      return res.status(202).json({
+        success: true,
+        message: `${app.name} launch command queued`,
+        commandId: command.id,
+        status: command.status,
+        app: {
+          id: app.id,
+          name: app.name,
+        },
       });
     }
 
+    // Local Windows backend: launch directly.
     if (
       typeof app.executablePath !== "string" ||
       !path.win32.isAbsolute(app.executablePath) ||
@@ -161,7 +246,7 @@ function launchApp(req, res) {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Configured executable is invalid or missing on this machine",
+        message: "Configured executable is invalid or missing",
       });
     }
 
@@ -174,37 +259,30 @@ function launchApp(req, res) {
 
     child.once("error", (error) => {
       console.error("Launch error:", error.message);
-
-      if (!res.headersSent) {
-        res.status(500).json({
-          success: false,
-          message: "Could not launch application",
-        });
-      }
     });
 
     child.once("spawn", () => {
-      if (!res.headersSent) {
-        res.status(200).json({
-          success: true,
-          message: `${app.name} launch requested`,
-          app: { id: app.id, name: app.name },
-        });
-      }
-
       child.unref();
+    });
+
+    return res.status(202).json({
+      success: true,
+      message: `${app.name} launch requested`,
+      app: {
+        id: app.id,
+        name: app.name,
+      },
     });
   } catch (error) {
     console.error("Launch error:", error.message);
 
-    if (!res.headersSent) {
-      return res.status(500).json({
-        success: false,
-        message: "Application launch failed",
-      });
-    }
+    return res.status(500).json({
+      success: false,
+      message: "Application launch failed",
+    });
   }
 }
+
 
 function deleteApp(req, res) {
   try {

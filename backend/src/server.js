@@ -68,6 +68,7 @@ const authenticate = require("./middleware/auth");
 const appRoutes = require("./routes/app.routes");
 const clipboardRoutes = require("./routes/clipboard.routes");
 const { startClipboardMonitor } = require("./controllers/clipboard.controller");
+const agentRoutes = require("./routes/agent.routes");
 
 const PORT = process.env.PORT || 3000
 
@@ -80,6 +81,7 @@ app.use(
 
 app.use("/api/apps", appRoutes);
 app.use("/api/clipboard", clipboardRoutes);
+app.use("/api/agent", agentRoutes);
 
 app.get("/health", (req, res) => {
   res.status(200).json({

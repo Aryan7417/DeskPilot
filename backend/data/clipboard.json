@@ -1,5 +1,23 @@
 [
   {
+    "id": "bfa215ad-542f-41c1-b07e-7e01b791f100",
+    "text": "const { enqueueLaunch } = require(\"../utils/agentQueue\");",
+    "createdAt": "2026-10-19T07:12:50.882Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "b21fd325-2f20-4a97-a12b-12f0df0bb1a7",
+    "text": "app.use(\"/api/agent\", agentRoutes);",
+    "createdAt": "2026-10-19T07:11:55.870Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "bc93b1fb-ac65-4188-b3c8-06cdd4e72b81",
+    "text": "const agentRoutes = require(\"./routes/agent.routes\");",
+    "createdAt": "2026-10-19T07:11:44.959Z",
+    "source": "Laptop"
+  },
+  {
     "id": "280adc62-922b-4666-b5cb-2d039b4a3137",
     "text": "\r\nconst {\r\n  getNextCommand,\r\n  completeCommand,\r\n} = require(\"../utils/agentQueue\");\r\n\r\n// GET /api/agent/commands/next\r\nfunction getCommand(req, res) {\r\n  try {\r\n    const command = getNextCommand();\r\n\r\n    return res.status(200).json({\r\n      success: true,\r\n      command,\r\n    });\r\n  } catch (error) {\r\n    console.error(\"Get agent command error:\", error.message);\r\n\r\n    return res.status(500).json({\r\n      success: false,\r\n      message: \"Could not fetch command\",\r\n    });\r\n  }\r\n}\r\n\r\n// POST /api/agent/commands/:id/result\r\nfunction reportResult(req, res) {\r\n  try {\r\n    const { success, message } = req.body;\r\n\r\n    if (\r\n      typeof success !== \"boolean\" ||\r\n      typeof message !== \"string\"\r\n    ) {\r\n      return res.status(400).json({\r\n        success: false,\r\n        message: \"A boolean success and string message are required\",\r\n      });\r\n    }\r\n\r\n    const updated = completeCommand(req.params.id, {\r\n      success,\r\n      message,\r\n    });\r\n\r\n    if (!updated) {\r\n      return res.status(404).json({\r\n        success: false,\r\n        message: \"Command not found or already completed\",\r\n      });\r\n    }\r\n\r\n    return res.status(200).json({\r\n      success: true,\r\n      message: \"Command result received\",\r\n    });\r\n  } catch (error) {\r\n    console.error(\"Report agent result error:\", error.message);\r\n\r\n    return res.status(500).json({\r\n      success: false,\r\n      message: \"Could not save command result\",\r\n    });\r\n  }\r\n}\r\n\r\nmodule.exports = {\r\n  getCommand,\r\n  reportResult,\r\n};\r\n",
     "createdAt": "2026-10-19T07:08:42.010Z",
@@ -279,24 +297,6 @@
     "id": "869e149d-7756-4e4a-a726-0a259128d4d9",
     "text": "1891a697-7079-4c57-9ccc-b280f1450368",
     "createdAt": "2026-10-18T11:33:58.276Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "3d91cdb6-90db-4022-9b4e-8076de5496de",
-    "text": "52027d3e-c627-43b0-a72f-17693c9ae363",
-    "createdAt": "2026-10-18T11:33:44.452Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "e71df44f-7153-47b4-974c-ff1616f71dcc",
-    "text": "77a04c90-e948-4e67-91aa-4fec8566f5cb",
-    "createdAt": "2026-10-18T11:33:33.700Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "e8719e54-5c4b-43c1-947a-7b575efa5e3b",
-    "text": "[\r\n  {\r\n    \"id\": \"77a04c90-e948-4e67-91aa-4fec8566f5cb\",\r\n    \"name\": \"VS code\",\r\n    \"executablePath\": \"C:\\\\Users\\\\carya\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\Code.exe\",\r\n    \"iconUrl\": \"http://172.16.48.54:3000/app-icons/77a04c90-e948-4e67-91aa-4fec8566f5cb.png\"\r\n  },\r\n  {\r\n    \"id\": \"52027d3e-c627-43b0-a72f-17693c9ae363\",\r\n    \"name\": \"EDGE\",\r\n    \"executablePath\": \"C:\\\\Program Files (x86)\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe\",\r\n    \"iconUrl\": \"http://172.16.48.54:3000/app-icons/52027d3e-c627-43b0-a72f-17693c9ae363.png\"\r\n  },\r\n  {\r\n    \"id\": \"1891a697-7079-4c57-9ccc-b280f1450368\",\r\n    \"name\": \"GITHUB\",\r\n    \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\chrome_proxy.exe\",\r\n    \"iconUrl\": \"http://172.16.48.54:3000/app-icons/1891a697-7079-4c57-9ccc-b280f1450368.png\"\r\n  },\r\n  {\r\n    \"id\": \"36aa7bb5-6d4a-44a4-a6cf-10c32e8c20fd\",\r\n    \"name\": \"Brave\",\r\n    \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brave.exe\",\r\n    \"iconUrl\": \"http://172.16.48.54:3000/app-icons/36aa7bb5-6d4a-44a4-a6cf-10c32e8c20fd.png\"\r\n  },\r\n  {\r\n    \"id\": \"0211a1ae-859d-4b02-a9a2-af0169f3c730\",\r\n    \"name\": \"brave\",\r\n    \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brave.exe\",\r\n    \"iconUrl\": \"http://localhost:3000/app-icons/0211a1ae-859d-4b02-a9a2-af0169f3c730.png\"\r\n  },\r\n  {\r\n    \"id\": \"3611a968-a914-4aff-9aef-cf5ece041094\",\r\n    \"name\": \"brave\",\r\n    \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brave.exe\",\r\n    \"iconUrl\": \"http://localhost:3000/app-icons/3611a968-a914-4aff-9aef-cf5ece041094.png\"\r\n  },\r\n  {\r\n    \"id\": \"7e12b02a-54cf-4553-a7d7-15d2ae2e53ff\",\r\n    \"name\": \"brave\",\r\n    \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brae.exe\",\r\n    \"iconUrl\": null\r\n  },\r\n  {\r\n    \"id\": \"c3996575-cde7-4962-b03f-efa19569e117\",\r\n    \"name\": \"brave\",\r\n    \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brae.exe\",\r\n    \"iconUrl\": null\r\n  },\r\n  {\r\n    \"id\": \"212bfa34-cb1a-4a5c-be86-f9cb0c2d6aca\",\r\n    \"name\": \"brave\",\r\n    \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brave.exe\",\r\n    \"iconUrl\": \"http://localhost:3000/app-icons/212bfa34-cb1a-4a5c-be86-f9cb0c2d6aca.png\"\r\n  },\r\n  {\r\n    \"id\": \"ba0c6617-a4c3-43bc-a176-f2c61d3b88aa\",\r\n    \"name\": \"VS Code\",\r\n    \"executablePath\": \"C:\\\\Users\\\\carya\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\Code.exe\",\r\n    \"iconUrl\": \"http://localhost:3000/app-icons/ba0c6617-a4c3-43bc-a176-f2c61d3b88aa.png\"\r\n  },\r\n  {\r\n    \"id\": \"3df47306-4b58-4013-a082-88a927cdd66e\",\r\n    \"name\": \"VS Code\",\r\n    \"executablePath\": \"C:\\\\Users\\\\carya\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\Cde.exe\",\r\n    \"iconUrl\": null\r\n  }\r\n]",
-    "createdAt": "2026-10-18T11:32:00.799Z",
     "source": "Laptop"
   }
 ]
