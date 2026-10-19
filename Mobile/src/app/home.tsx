@@ -18,6 +18,7 @@ import {
     launchApp,
     type DesktopApp,
 } from "../services/app.service";
+const API_BASE_URL = "https://deskpilot-259y.onrender.com";
 
 export default function HomeScreen() {
     const router = useRouter();
@@ -40,9 +41,7 @@ export default function HomeScreen() {
                 return;
             }
 
-            const response = await fetch(
-                `http://${ip}:${port}/health`
-            );
+            const response = await fetch(`${API_BASE_URL}/health`);;
 
             if (!response.ok) {
                 setIsOnline(false);

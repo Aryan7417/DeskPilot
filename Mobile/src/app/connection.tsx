@@ -32,6 +32,7 @@ const C = {
     red: "#FF718B",
 };
 
+const API_BASE_URL = "https://deskpilot-259y.onrender.com";
 export default function ConnectionScreen() {
 
     const [ip, setIp] = useState("172.16.48.54");
@@ -75,10 +76,7 @@ export default function ConnectionScreen() {
                 setPort(settings.port);
                 setLoading(true);
 
-                const response = await fetch(
-                    `http://${settings.ip}:${settings.port}/health`
-                );
-
+                const response = await fetch(`${API_BASE_URL}/health`);
                 const data = await response.json();
 
                 if (!active) return;
@@ -87,11 +85,12 @@ export default function ConnectionScreen() {
                     response.ok &&
                     (data.success === true || data.status === "online");
 
-                setConnected(true);
-                await saveConnectionStatus(true);
+                setConnected(online);
+                await saveConnectionStatus(online);
 
                 if (online) {
                     setLastChecked(new Date().toLocaleTimeString());
+                    setConnectionError("");
                 } else {
                     setConnectionError("DeskPilot server is not responding correctly.");
                 }
@@ -135,7 +134,7 @@ export default function ConnectionScreen() {
             return;
         }
 
-        const baseUrl = `http://${cleanIp}:${portNumber}`;
+        const baseUrl = API_BASE_URL;
 
         setLoading(true);
         setConnected(false);
@@ -236,7 +235,7 @@ export default function ConnectionScreen() {
                 </View>
 
                 <Text style={s.subtitle}>
-                    Connect DeskPilot to your Windows laptop on the same network.
+                    Connect DeskPilot to your Windows laptop through the cloud.
                 </Text>
 
                 {/* Laptop status card */}

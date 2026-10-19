@@ -1,4 +1,4 @@
-export const API_BASE_URL = "http://172.16.48.54:3000";
+export const API_BASE_URL = "https://deskpilot-259y.onrender.com";
 
 const API_TOKEN = "pQahepv9dIrIPyFU0wzAbbr5xXqqUwuuLYPoBfqb2mlPtQvDSkdDmstXow0XI5rk";
 

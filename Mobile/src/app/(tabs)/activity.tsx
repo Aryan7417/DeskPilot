@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -44,6 +45,7 @@ export default function ActivityScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
   const [error, setError] = useState("");
   const [lastSync, setLastSync] = useState("");
   const knownIds = useRef<Set<string>>(new Set());
@@ -121,6 +123,42 @@ export default function ActivityScreen() {
         },
       },
     ]);
+  };
+
+  const deleteAllClips = () => {
+    if (clips.length === 0 || deletingAll) return;
+
+    Alert.alert(
+      "Delete all clipboard history?",
+      `This will permanently remove all ${clips.length} saved clips from the server.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete All",
+          style: "destructive",
+          onPress: async () => {
+            setDeletingAll(true);
+            try {
+              await apiRequest("/api/clipboard", { method: "DELETE" });
+              setClips([]);
+              knownIds.current = new Set();
+              setError("");
+              setLastSync(new Date().toLocaleTimeString());
+              Alert.alert("Success", "All clipboard history deleted.");
+            } catch (e) {
+              Alert.alert(
+                "Delete failed",
+                e instanceof Error
+                  ? e.message
+                  : "Could not delete clipboard history from the server."
+              );
+            } finally {
+              setDeletingAll(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const clipCount = clips.length;
@@ -202,8 +240,25 @@ export default function ActivityScreen() {
             <Text style={s.sectionTitle}>CLIP HISTORY</Text>
             <Text style={s.sectionSubtitle}>Latest copied text appears first</Text>
           </View>
-          <View style={s.countBadge}>
-            <Text style={s.countBadgeText}>{clipCount} ITEMS</Text>
+          <View style={s.sectionActions}>
+            <View style={s.countBadge}>
+              <Text style={s.countBadgeText}>{clipCount} ITEMS</Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              disabled={clipCount === 0 || deletingAll}
+              style={[
+                s.deleteAllButton,
+                (clipCount === 0 || deletingAll) && { opacity: 0.45 },
+              ]}
+              onPress={deleteAllClips}
+            >
+              {deletingAll ? (
+                <ActivityIndicator size="small" color={C.red} />
+              ) : (
+                <Text style={s.deleteAllText}>Delete All</Text>
+              )}
+            </Pressable>
           </View>
         </View>
 
@@ -233,9 +288,9 @@ export default function ActivityScreen() {
                 <Text style={s.clipTime}>
                   {clip.createdAt
                     ? new Date(clip.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
                     : "SYNCED"}
                 </Text>
               </View>
@@ -405,6 +460,16 @@ const s = StyleSheet.create({
   },
   sectionTitle: { color: C.white, fontSize: 11, fontWeight: "900", letterSpacing: 1.5 },
   sectionSubtitle: { color: C.muted, fontSize: 10, marginTop: 5 },
+  sectionActions: { flexDirection: "row", alignItems: "center", gap: 7 },
+  deleteAllButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 9,
+    backgroundColor: "#281923",
+    borderWidth: 1,
+    borderColor: "#58303E",
+  },
+  deleteAllText: { color: C.red, fontSize: 10, fontWeight: "800" },
   countBadge: {
     backgroundColor: "#1A2030",
     borderWidth: 1,

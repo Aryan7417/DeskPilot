@@ -1,15 +1,18 @@
+
 const express = require("express");
-const authenticate = require("../middleware/auth");
+const router = express.Router();
+
 const {
     getClipboard,
     deleteClipboardItem,
+    deleteAllClipboard,
 } = require("../controllers/clipboard.controller");
 
-const router = express.Router();
-
-router.use(authenticate);
-
 router.get("/", getClipboard);
+
+router.delete("/", deleteAllClipboard);
+
+
 router.delete("/:id", deleteClipboardItem);
 
 module.exports = router;
