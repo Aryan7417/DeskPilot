@@ -7,9 +7,6 @@ if (!Server_URL) {
 }
 
 
-
-
-
 console.log("DeskPilot Windows Agent starting...");
 console.log("Backend:", Server_URL);
 console.log("Agent is ready for backend integration.");

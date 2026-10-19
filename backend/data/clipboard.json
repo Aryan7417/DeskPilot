@@ -1,5 +1,131 @@
 [
   {
+    "id": "280adc62-922b-4666-b5cb-2d039b4a3137",
+    "text": "\r\nconst {\r\n  getNextCommand,\r\n  completeCommand,\r\n} = require(\"../utils/agentQueue\");\r\n\r\n// GET /api/agent/commands/next\r\nfunction getCommand(req, res) {\r\n  try {\r\n    const command = getNextCommand();\r\n\r\n    return res.status(200).json({\r\n      success: true,\r\n      command,\r\n    });\r\n  } catch (error) {\r\n    console.error(\"Get agent command error:\", error.message);\r\n\r\n    return res.status(500).json({\r\n      success: false,\r\n      message: \"Could not fetch command\",\r\n    });\r\n  }\r\n}\r\n\r\n// POST /api/agent/commands/:id/result\r\nfunction reportResult(req, res) {\r\n  try {\r\n    const { success, message } = req.body;\r\n\r\n    if (\r\n      typeof success !== \"boolean\" ||\r\n      typeof message !== \"string\"\r\n    ) {\r\n      return res.status(400).json({\r\n        success: false,\r\n        message: \"A boolean success and string message are required\",\r\n      });\r\n    }\r\n\r\n    const updated = completeCommand(req.params.id, {\r\n      success,\r\n      message,\r\n    });\r\n\r\n    if (!updated) {\r\n      return res.status(404).json({\r\n        success: false,\r\n        message: \"Command not found or already completed\",\r\n      });\r\n    }\r\n\r\n    return res.status(200).json({\r\n      success: true,\r\n      message: \"Command result received\",\r\n    });\r\n  } catch (error) {\r\n    console.error(\"Report agent result error:\", error.message);\r\n\r\n    return res.status(500).json({\r\n      success: false,\r\n      message: \"Could not save command result\",\r\n    });\r\n  }\r\n}\r\n\r\nmodule.exports = {\r\n  getCommand,\r\n  reportResult,\r\n};\r\n",
+    "createdAt": "2026-10-19T07:08:42.010Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "b8a40a2e-49ac-42c1-859f-34e1f6b4b018",
+    "text": "function authenticateAgent(req, res, next) {\r\n  const expectedToken = process.env.DESKPILOT_AGENT_TOKEN;\r\n  const authHeader = req.headers.authorization;\r\n\r\n  if (!expectedToken) {\r\n    return res.status(500).json({\r\n      success: false,\r\n      message: \"Agent authentication is not configured\",\r\n    });\r\n  }\r\n\r\n  if (authHeader !== `Bearer ${expectedToken}`) {\r\n    return res.status(401).json({\r\n      success: false,\r\n      message: \"Unauthorized agent\",\r\n    });\r\n  }\r\n\r\n  next();\r\n}\r\n\r\nmodule.exports = authenticateAgent;",
+    "createdAt": "2026-10-19T07:07:54.839Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "2a24a762-ef57-4796-8ab9-992b0c96a9e2",
+    "text": "\r\nconst express = require(\"express\");\r\nconst router = express.Router();\r\n\r\nconst {\r\n  getCommand,\r\n  reportResult,\r\n} = require(\"../controllers/agent.controller\");\r\n\r\nconst authenticateAgent = require(\"../middleware/agentAuth\");\r\n\r\nrouter.get(\"/commands/next\", authenticateAgent, getCommand);\r\nrouter.post(\"/commands/:id/result\", authenticateAgent, reportResult);\r\n\r\nmodule.exports = router;\r\n",
+    "createdAt": "2026-10-19T07:06:49.719Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "2a02bdf7-2db2-4338-bd15-88e2587af0e4",
+    "text": "\r\nconst { randomUUID } = require(\"crypto\");\r\n\r\nconst commands = new Map();\r\n\r\nfunction enqueueLaunch(app) {\r\n  const command = {\r\n    id: randomUUID(),\r\n    type: \"launch\",\r\n    app: {\r\n      id: app.id,\r\n      name: app.name,\r\n    },\r\n    status: \"pending\",\r\n    createdAt: Date.now(),\r\n  };\r\n\r\n  commands.set(command.id, command);\r\n  return command;\r\n}\r\n\r\nfunction getNextCommand() {\r\n  const now = Date.now();\r\n\r\n  for (const [id, command] of commands) {\r\n    if (now - command.createdAt > 5 * 60 * 1000) {\r\n      commands.delete(id);\r\n      continue;\r\n    }\r\n\r\n    if (command.status === \"pending\") {\r\n      command.status = \"processing\";\r\n      return command;\r\n    }\r\n  }\r\n\r\n  return null;\r\n}\r\n\r\nfunction completeCommand(id, result) {\r\n  const command = commands.get(id);\r\n\r\n  if (!command || command.status !== \"processing\") {\r\n    return false;\r\n  }\r\n\r\n  command.status = result.success ? \"completed\" : \"failed\";\r\n  command.result = {\r\n    success: Boolean(result.success),\r\n    message: String(result.message || \"\").slice(0, 300),\r\n  };\r\n  command.completedAt = Date.now();\r\n\r\n  return true;\r\n}\r\n\r\nmodule.exports = {\r\n  enqueueLaunch,\r\n  getNextCommand,\r\n  completeCommand,\r\n};\r\n",
+    "createdAt": "2026-10-19T07:05:26.291Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "bc2f00d8-3784-4f28-99b4-2f7dcc4ea7d4",
+    "text": "function launchApp(req, res) {\r\n  try {\r\n    const apps = readApps();\r\n    const app = apps.find((item) => item.id === req.params.id);\r\n\r\n    if (!app) {\r\n      return res.status(404).json({\r\n        success: false,\r\n        message: \"Application not found\",\r\n      });\r\n    }\r\n\r\n    // This endpoint can launch apps only on the machine running this process.\r\n    // A Render-hosted process cannot launch an executable on your Windows laptop.\r\n    if (process.platform !== \"win32\") {\r\n      return res.status(501).json({\r\n        success: false,\r\n        message: \"Remote launch requires a Windows DeskPilot agent on your laptop\",\r\n      });\r\n    }\r\n\r\n    if (\r\n      typeof app.executablePath !== \"string\" ||\r\n      !path.win32.isAbsolute(app.executablePath) ||\r\n      path.win32.extname(app.executablePath).toLowerCase() !== \".exe\" ||\r\n      !fs.existsSync(app.executablePath)\r\n    ) {\r\n      return res.status(400).json({\r\n        success: false,\r\n        message: \"Configured executable is invalid or missing on this machine\",\r\n      });\r\n    }\r\n\r\n    const child = spawn(app.executablePath, [], {\r\n      shell: false,\r\n      detached: true,\r\n      stdio: \"ignore\",\r\n      windowsHide: false,\r\n    });\r\n\r\n    child.once(\"error\", (error) => {\r\n      console.error(\"Launch error:\", error.message);\r\n\r\n      if (!res.headersSent) {\r\n        res.status(500).json({\r\n          success: false,\r\n          message: \"Could not launch application\",\r\n        });\r\n      }\r\n    });\r\n\r\n    child.once(\"spawn\", () => {\r\n      if (!res.headersSent) {\r\n        res.status(200).json({\r\n          success: true,\r\n          message: `${app.name} launch requested`,\r\n          app: { id: app.id, name: app.name },\r\n        });\r\n      }\r\n\r\n      child.unref();\r\n    });\r\n  } catch (error) {\r\n    console.error(\"Launch error:\", error.message);\r\n\r\n    if (!res.headersSent) {\r\n      return res.status(500).json({\r\n        success: false,\r\n        message: \"Application launch failed\",\r\n      });\r\n    }\r\n  }\r\n}\r\n",
+    "createdAt": "2026-10-19T07:03:45.696Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "3748c52c-3d38-4ec6-b342-1e8e0df9d21a",
+    "text": "hLV0lVsdT3vrUSMSF4AqMe00V5D4CvRe7ioATyoOMo0o1b2SRwlQ",
+    "createdAt": "2026-10-19T07:02:35.865Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "11c761d0-2421-46b9-9664-3090eb5db3b3",
+    "text": "DESKPILOT_AGENT_TOKEN",
+    "createdAt": "2026-10-19T07:02:28.490Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "4bd6cc81-8a5a-48a7-aa70-8fbb2af40359",
+    "text": "hLV0lVsdT3vrUSMSF4AqMe00V5D4CvRe7ioATyoOMo0o1b2SRwlQ",
+    "createdAt": "2026-10-19T06:58:50.337Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "b7c975f4-474d-4200-9162-1c648a263f35",
+    "text": "JEQA(9M1+Wu9K0qtSO]*{5ds9h()F9+Dhz|UsVvX'aO.-td29eX}",
+    "createdAt": "2026-10-19T06:58:42.075Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "6a3d68c2-bd64-4221-b2e8-1822a583be5e",
+    "text": "DeskPilot Windows Agent starting...\r\nBackend: https://deskpilot-259y.onrender.com\r\nAgent is ready for backend integration.",
+    "createdAt": "2026-10-19T06:57:31.171Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "e3eb7680-c47b-4924-bee0-688bfa466c90",
+    "text": "Server_URL",
+    "createdAt": "2026-10-19T06:57:05.135Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "222b8726-b2fb-4551-8f24-e978b1278a0b",
+    "text": "DESKPILOT_SERVER_URL",
+    "createdAt": "2026-10-19T06:57:00.995Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "573933ee-17d5-4b91-9aa1-44fd59ddfe22",
+    "text": "\nconsole.log(\"DeskPilot Windows Agent starting...\");\nconsole.log(\"Backend:\", SERVER_URL);\nconsole.log(\"Agent is ready for backend integration.\");",
+    "createdAt": "2026-10-19T06:56:30.744Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "5d561e7a-5c9b-4135-a455-f3570851a8b4",
+    "text": "DESKPILOT_SERVER_URL",
+    "createdAt": "2026-10-19T06:55:30.328Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "939e841d-7637-4004-9dcf-8e2e48e10817",
+    "text": "C:\\\\Users\\\\carya\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\Code.exe",
+    "createdAt": "2026-10-19T06:52:49.071Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "d52e4efa-0d58-4f12-b8d5-8fc94989a9d9",
+    "text": "C:\\\\Program Files (x86)\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe",
+    "createdAt": "2026-10-19T06:52:38.509Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "35f1cb95-80fb-4773-bd0b-f12923f4d303",
+    "text": "\r\n[\r\n  {\r\n    \"id\": \"vscode\",\r\n    \"name\": \"VS Code\",\r\n    \"path\": \"C:\\\\Users\\\\carya\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\Code.exe\"\r\n  },\r\n  {\r\n    \"id\": \"edge\",\r\n    \"name\": \"Microsoft Edge\",\r\n    \"path\": \"C:\\\\Program Files (x86)\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe\"\r\n  }\r\n]\r\n",
+    "createdAt": "2026-10-19T06:52:24.523Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "004952c0-6a05-451a-b5bc-f8f44ca94859",
+    "text": "your_separate_agent_secret",
+    "createdAt": "2026-10-19T06:50:25.636Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "4e094a5e-9ccb-4838-9f0d-65c1af76b808",
+    "text": "DESKPILOT_AGENT_TOKEN",
+    "createdAt": "2026-10-19T06:50:16.622Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "581f83fb-fb75-4440-a4ee-dd0fd742ab57",
+    "text": "DESKPILOT_TOKEN=pQahepv9dIrIPyFU0wzAbbr5xXqqUwuuLYPoBfqb2mlPtQvDSkdDmstXow0XI5rk",
+    "createdAt": "2026-10-19T06:49:26.885Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "1e1f939e-788a-4b3e-bacb-50fd72bc235b",
+    "text": "DESKPILOT_SERVER_URL=https://deskpilot-259y.onrender.com",
+    "createdAt": "2026-10-19T06:49:12.007Z",
+    "source": "Laptop"
+  },
+  {
     "id": "d87cbc85-24da-4e09-b930-2b895f89342a",
     "text": "# Created by https://www.toptal.com/developers/gitignore/api/node\r\n# Edit at https://www.toptal.com/developers/gitignore?templates=node\r\n\r\n### Node ###\r\n# Logs\r\nlogs\r\n*.log\r\nnpm-debug.log*\r\nyarn-debug.log*\r\nyarn-error.log*\r\nlerna-debug.log*\r\n.pnpm-debug.log*\r\n\r\n# Diagnostic reports (https://nodejs.org/api/report.html)\r\nreport.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json\r\n\r\n# Runtime data\r\npids\r\n*.pid\r\n*.seed\r\n*.pid.lock\r\n\r\n# Directory for instrumented libs generated by jscoverage/JSCover\r\nlib-cov\r\n\r\n# Coverage directory used by tools like istanbul\r\ncoverage\r\n*.lcov\r\n\r\n# nyc test coverage\r\n.nyc_output\r\n\r\n# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)\r\n.grunt\r\n\r\n# Bower dependency directory (https://bower.io/)\r\nbower_components\r\n\r\n# node-waf configuration\r\n.lock-wscript\r\n\r\n# Compiled binary addons (https://nodejs.org/api/addons.html)\r\nbuild/Release\r\n\r\n# Dependency directories\r\nnode_modules/\r\njspm_packages/\r\n\r\n# Snowpack dependency directory (https://snowpack.dev/)\r\nweb_modules/\r\n\r\n# TypeScript cache\r\n*.tsbuildinfo\r\n\r\n# Optional npm cache directory\r\n.npm\r\n\r\n# Optional eslint cache\r\n.eslintcache\r\n\r\n# Optional stylelint cache\r\n.stylelintcache\r\n\r\n# Microbundle cache\r\n.rpt2_cache/\r\n.rts2_cache_cjs/\r\n.rts2_cache_es/\r\n.rts2_cache_umd/\r\n\r\n# Optional REPL history\r\n.node_repl_history\r\n\r\n# Output of 'npm pack'\r\n*.tgz\r\n\r\n# Yarn Integrity file\r\n.yarn-integrity\r\n\r\n# dotenv environment variable files\r\n.env\r\n.env.development.local\r\n.env.test.local\r\n.env.production.local\r\n.env.local\r\n\r\n# parcel-bundler cache (https://parceljs.org/)\r\n.cache\r\n.parcel-cache\r\n\r\n# Next.js build output\r\n.next\r\nout\r\n\r\n# Nuxt.js build / generate output\r\n.nuxt\r\ndist\r\n\r\n# Gatsby files\r\n.cache/\r\n# Comment in the public line in if your project uses Gatsby and not Next.js\r\n# https://nextjs.org/blog/next-9-1#public-directory-support\r\n# public\r\n\r\n# vuepress build output\r\n.vuepress/dist\r\n\r\n# vuepress v2.x temp and cache directory\r\n.temp\r\n\r\n# Docusaurus cache and generated files\r\n.docusaurus\r\n\r\n# Serverless directories\r\n.serverless/\r\n\r\n# FuseBox cache\r\n.fusebox/\r\n\r\n# DynamoDB Local files\r\n.dynamodb/\r\n\r\n# TernJS port file\r\n.tern-port\r\n\r\n# Stores VSCode versions used for testing VSCode extensions\r\n.vscode-test\r\n\r\n# yarn v2\r\n.yarn/cache\r\n.yarn/unplugged\r\n.yarn/build-state.yml\r\n.yarn/install-state.gz\r\n.pnp.*\r\n\r\n### Node Patch ###\r\n# Serverless Webpack directories\r\n.webpack/\r\n\r\n# Optional stylelint cache\r\n\r\n# SvelteKit build / generate output\r\n.svelte-kit\r\n\r\n# End of https://www.toptal.com/developers/gitignore/api/node",
     "createdAt": "2026-10-19T06:48:14.799Z",
@@ -171,132 +297,6 @@
     "id": "e8719e54-5c4b-43c1-947a-7b575efa5e3b",
     "text": "[\r\n  {\r\n    \"id\": \"77a04c90-e948-4e67-91aa-4fec8566f5cb\",\r\n    \"name\": \"VS code\",\r\n    \"executablePath\": \"C:\\\\Users\\\\carya\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\Code.exe\",\r\n    \"iconUrl\": \"http://172.16.48.54:3000/app-icons/77a04c90-e948-4e67-91aa-4fec8566f5cb.png\"\r\n  },\r\n  {\r\n    \"id\": \"52027d3e-c627-43b0-a72f-17693c9ae363\",\r\n    \"name\": \"EDGE\",\r\n    \"executablePath\": \"C:\\\\Program Files (x86)\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe\",\r\n    \"iconUrl\": \"http://172.16.48.54:3000/app-icons/52027d3e-c627-43b0-a72f-17693c9ae363.png\"\r\n  },\r\n  {\r\n    \"id\": \"1891a697-7079-4c57-9ccc-b280f1450368\",\r\n    \"name\": \"GITHUB\",\r\n    \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\chrome_proxy.exe\",\r\n    \"iconUrl\": \"http://172.16.48.54:3000/app-icons/1891a697-7079-4c57-9ccc-b280f1450368.png\"\r\n  },\r\n  {\r\n    \"id\": \"36aa7bb5-6d4a-44a4-a6cf-10c32e8c20fd\",\r\n    \"name\": \"Brave\",\r\n    \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brave.exe\",\r\n    \"iconUrl\": \"http://172.16.48.54:3000/app-icons/36aa7bb5-6d4a-44a4-a6cf-10c32e8c20fd.png\"\r\n  },\r\n  {\r\n    \"id\": \"0211a1ae-859d-4b02-a9a2-af0169f3c730\",\r\n    \"name\": \"brave\",\r\n    \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brave.exe\",\r\n    \"iconUrl\": \"http://localhost:3000/app-icons/0211a1ae-859d-4b02-a9a2-af0169f3c730.png\"\r\n  },\r\n  {\r\n    \"id\": \"3611a968-a914-4aff-9aef-cf5ece041094\",\r\n    \"name\": \"brave\",\r\n    \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brave.exe\",\r\n    \"iconUrl\": \"http://localhost:3000/app-icons/3611a968-a914-4aff-9aef-cf5ece041094.png\"\r\n  },\r\n  {\r\n    \"id\": \"7e12b02a-54cf-4553-a7d7-15d2ae2e53ff\",\r\n    \"name\": \"brave\",\r\n    \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brae.exe\",\r\n    \"iconUrl\": null\r\n  },\r\n  {\r\n    \"id\": \"c3996575-cde7-4962-b03f-efa19569e117\",\r\n    \"name\": \"brave\",\r\n    \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brae.exe\",\r\n    \"iconUrl\": null\r\n  },\r\n  {\r\n    \"id\": \"212bfa34-cb1a-4a5c-be86-f9cb0c2d6aca\",\r\n    \"name\": \"brave\",\r\n    \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brave.exe\",\r\n    \"iconUrl\": \"http://localhost:3000/app-icons/212bfa34-cb1a-4a5c-be86-f9cb0c2d6aca.png\"\r\n  },\r\n  {\r\n    \"id\": \"ba0c6617-a4c3-43bc-a176-f2c61d3b88aa\",\r\n    \"name\": \"VS Code\",\r\n    \"executablePath\": \"C:\\\\Users\\\\carya\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\Code.exe\",\r\n    \"iconUrl\": \"http://localhost:3000/app-icons/ba0c6617-a4c3-43bc-a176-f2c61d3b88aa.png\"\r\n  },\r\n  {\r\n    \"id\": \"3df47306-4b58-4013-a082-88a927cdd66e\",\r\n    \"name\": \"VS Code\",\r\n    \"executablePath\": \"C:\\\\Users\\\\carya\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\Cde.exe\",\r\n    \"iconUrl\": null\r\n  }\r\n]",
     "createdAt": "2026-10-18T11:32:00.799Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "147129df-c5ea-44bc-bd7b-f83a6c2b9134",
-    "text": "{\r\n  \"name\": \"backend\",\r\n  \"version\": \"1.0.0\",\r\n  \"description\": \"\",\r\n  \"main\": \"index.js\",\r\n  \"scripts\": {\r\n    \"test\": \"echo \\\"Error: no test specified\\\" && exit 1\",\r\n    \"dev\": \"nodemon src/server.js\"\r\n  },\r\n  \"keywords\": [],\r\n  \"author\": \"\",\r\n  \"license\": \"ISC\",\r\n  \"type\": \"commonjs\",\r\n  \"dependencies\": {\r\n    \"dotenv\": \"^18.0.7\",\r\n    \"express\": \"^5.3.0\",\r\n    \"nodemon\": \"^3.1.14\"\r\n  }\r\n}\r\n",
-    "createdAt": "2026-10-18T11:31:34.680Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "8f6f509a-bef9-45ad-bb40-dbe78709c4ad",
-    "text": "function authenticate(req, res, next) {\r\n  const authHeader = req.headers.authorization;\r\n  const expectedToken = process.env.DESKPILOT_TOKEN;\r\n\r\n  if (!expectedToken) {\r\n    return res.status(500).json({\r\n      success: false,\r\n      message: \"Server authentication is not configured\",\r\n    });\r\n  }\r\n\r\n    if (authHeader !== `Bearer ${expectedToken}`) {\r\n    return res.status(401).json({\r\n      success: false,\r\n      message: \"Unauthorized: Invalid or missing tokens\",\r\n    });\r\n  }\r\n\r\n  next();\r\n}\r\n\r\nmodule.exports = authenticate;",
-    "createdAt": "2026-10-18T11:31:07.756Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "10d235fa-d9d8-4391-89fe-d958cd4017c5",
-    "text": "const express = require(\"express\");\r\nconst router = express.Router();\r\n\r\nconst authenticate = require(\"../middleware/auth\")\r\nconst {\r\n  getApps,\r\n  addApp,\r\n  launchApp,\r\n  deleteApp\r\n} = require(\"../controllers/app.controller\");\r\n\r\n\r\n\r\nrouter.get(\"/\", authenticate, getApps);\r\nrouter.post(\"/\", authenticate, addApp);\r\nrouter.post(\"/:id/launch\", authenticate, launchApp);\r\nrouter.delete(\"/:id\", authenticate, deleteApp);\r\n\r\n\r\nmodule.exports = router;",
-    "createdAt": "2026-10-18T11:30:40.006Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "fb15b6ce-b4f3-4b13-8f29-27c93f1c1f11",
-    "text": "\r\n// require(\"dotenv\").config();\r\n\r\n// const express = require(\"express\");\r\n// const path = require(\"path\");\r\n\r\n// const app = express();\r\n// const authenticate = require(\"./middleware/auth\");\r\n// const appRoutes = require(\"./routes/app.routes\");\r\n\r\n// const PORT = process.env.PORT || 3000;\r\n\r\n// app.use(express.json({ limit: \"10kb\" }));\r\n\r\n\r\n// app.use(\r\n//   \"/app-icons\",\r\n//   express.static(path.join(__dirname, \"../public/app-icons\"))\r\n// );\r\n\r\n// app.use(\"/api/apps\", appRoutes);\r\n\r\n// app.get(\"/health\", (req, res) => {\r\n//   res.status(200).json({\r\n//     success: true,\r\n//     message: \"DeskPilot server is Running\",\r\n//     status: \"online\",\r\n//     timestamp: new Date().toISOString(),\r\n//   });\r\n// });\r\n\r\n// app.get(\"/api/test\", authenticate, (req, res) => {\r\n//   res.json({\r\n//     success: true,\r\n//     message: \"Authentication successful\",\r\n//   });\r\n// });\r\n\r\n// app.use((err, req, res, next) => {\r\n//   if (err instanceof SyntaxError && \"body\" in err) {\r\n//     return res.status(400).json({\r\n//       success: false,\r\n//       message: \"Invalid JSON body\",\r\n//     });\r\n//   }\r\n\r\n//   console.error(\"Server error:\", err.message);\r\n\r\n//   res.status(500).json({\r\n//     success: false,\r\n//     message: \"Internal server Error\",\r\n//   });\r\n// });\r\n\r\n// app.listen(PORT, \"0.0.0.0\", () => {\r\n//   console.log(`DeskPilot server running on port ${PORT}`);\r\n//   console.log(`Health check: http://localhost:${PORT}/health`);\r\n// });\r\n\r\n\r\nrequire(\"dotenv\").config();\r\n\r\nconst express = require(\"express\");\r\nconst path = require(\"path\");\r\n\r\nconst app = express();\r\nconst authenticate = require(\"./middleware/auth\");\r\nconst appRoutes = require(\"./routes/app.routes\");\r\nconst clipboardRoutes = require(\"./routes/clipboard.routes\");\r\nconst { startClipboardMonitor } = require(\"./controllers/clipboard.controller\");\r\n\r\nconst PORT = process.env.PORT || 3000;\r\n\r\napp.use(express.json({ limit: \"10kb\" }));\r\n\r\napp.use(\r\n  \"/app-icons\",\r\n  express.static(path.join(__dirname, \"../public/app-icons\"))\r\n);\r\n\r\napp.use(\"/api/apps\", appRoutes);\r\napp.use(\"/api/clipboard\", clipboardRoutes);\r\n\r\napp.get(\"/health\", (req, res) => {\r\n  res.status(200).json({\r\n    success: true,\r\n    message: \"DeskPilot server is Running\",\r\n    status: \"online\",\r\n    timestamp: new Date().toISOString(),\r\n  });\r\n});\r\n\r\napp.get(\"/api/test\", authenticate, (req, res) => {\r\n  res.json({\r\n    success: true,\r\n    message: \"Authentication successful\",\r\n  });\r\n});\r\n\r\napp.use((err, req, res, next) => {\r\n  if (err instanceof SyntaxError && \"body\" in err) {\r\n    return res.status(400).json({\r\n      success: false,\r\n      message: \"Invalid JSON body\",\r\n    });\r\n  }\r\n\r\n  console.error(\"Server error:\", err.message);\r\n\r\n  res.status(500).json({\r\n    success: false,\r\n    message: \"Internal server Error\",\r\n  });\r\n});\r\n\r\napp.listen(PORT, \"0.0.0.0\", () => {\r\n  console.log(`DeskPilot server running on port ${PORT}`);\r\n  console.log(`Health check: http://localhost:${PORT}/health`);\r\n\r\n  // Must run in the logged-in Windows desktop session to access its clipboard.\r\n  startClipboardMonitor();\r\n});\r\n",
-    "createdAt": "2026-10-18T11:30:09.249Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "ed43ce45-679a-40e2-a4aa-f5ed09520dc9",
-    "text": "api/apps/77a04c90-e948-4e67-91aa-4fec8566f5cb/launch",
-    "createdAt": "2026-10-18T11:28:21.732Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "abc91439-9b94-4914-a384-5b53dee00370",
-    "text": "{\r\n    \"success\": true,\r\n    \"message\": \"VS code launch requested\",\r\n    \"app\": {\r\n        \"id\": \"77a04c90-e948-4e67-91aa-4fec8566f5cb\",\r\n        \"name\": \"VS code\"\r\n    }\r\n}",
-    "createdAt": "2026-10-18T11:18:11.090Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "0abc7d9e-104a-46d8-840e-a8fa7ff9ecc9",
-    "text": "http://localhost:3000/api/apps/77a04c90-e948-4e67-91aa-4fec8566f5cb/launch",
-    "createdAt": "2026-10-18T11:17:51.495Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "e7c5999b-f4f3-4a38-b9d9-a6e3cb32b63a",
-    "text": "{\r\n    \"success\": true,\r\n    \"apps\": [\r\n        {\r\n            \"id\": \"77a04c90-e948-4e67-91aa-4fec8566f5cb\",\r\n            \"name\": \"VS code\",\r\n            \"executablePath\": \"C:\\\\Users\\\\carya\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\Code.exe\",\r\n            \"iconUrl\": \"http://172.16.48.54:3000/app-icons/77a04c90-e948-4e67-91aa-4fec8566f5cb.png\"\r\n        },\r\n        {\r\n            \"id\": \"52027d3e-c627-43b0-a72f-17693c9ae363\",\r\n            \"name\": \"EDGE\",\r\n            \"executablePath\": \"C:\\\\Program Files (x86)\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe\",\r\n            \"iconUrl\": \"http://172.16.48.54:3000/app-icons/52027d3e-c627-43b0-a72f-17693c9ae363.png\"\r\n        },\r\n        {\r\n            \"id\": \"1891a697-7079-4c57-9ccc-b280f1450368\",\r\n            \"name\": \"GITHUB\",\r\n            \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\chrome_proxy.exe\",\r\n            \"iconUrl\": \"http://172.16.48.54:3000/app-icons/1891a697-7079-4c57-9ccc-b280f1450368.png\"\r\n        },\r\n        {\r\n            \"id\": \"36aa7bb5-6d4a-44a4-a6cf-10c32e8c20fd\",\r\n            \"name\": \"Brave\",\r\n            \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brave.exe\",\r\n            \"iconUrl\": \"http://172.16.48.54:3000/app-icons/36aa7bb5-6d4a-44a4-a6cf-10c32e8c20fd.png\"\r\n        },\r\n        {\r\n            \"id\": \"0211a1ae-859d-4b02-a9a2-af0169f3c730\",\r\n            \"name\": \"brave\",\r\n            \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brave.exe\",\r\n            \"iconUrl\": \"http://localhost:3000/app-icons/0211a1ae-859d-4b02-a9a2-af0169f3c730.png\"\r\n        },\r\n        {\r\n            \"id\": \"3611a968-a914-4aff-9aef-cf5ece041094\",\r\n            \"name\": \"brave\",\r\n            \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brave.exe\",\r\n            \"iconUrl\": \"http://localhost:3000/app-icons/3611a968-a914-4aff-9aef-cf5ece041094.png\"\r\n        },\r\n        {\r\n            \"id\": \"7e12b02a-54cf-4553-a7d7-15d2ae2e53ff\",\r\n            \"name\": \"brave\",\r\n            \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brae.exe\",\r\n            \"iconUrl\": null\r\n        },\r\n        {\r\n            \"id\": \"c3996575-cde7-4962-b03f-efa19569e117\",\r\n            \"name\": \"brave\",\r\n            \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brae.exe\",\r\n            \"iconUrl\": null\r\n        },\r\n        {\r\n            \"id\": \"212bfa34-cb1a-4a5c-be86-f9cb0c2d6aca\",\r\n            \"name\": \"brave\",\r\n            \"executablePath\": \"C:\\\\Program Files\\\\BraveSoftware\\\\Brave-Browser\\\\Application\\\\brave.exe\",\r\n            \"iconUrl\": \"http://localhost:3000/app-icons/212bfa34-cb1a-4a5c-be86-f9cb0c2d6aca.png\"\r\n        },\r\n        {\r\n            \"id\": \"ba0c6617-a4c3-43bc-a176-f2c61d3b88aa\",\r\n            \"name\": \"VS Code\",\r\n            \"executablePath\": \"C:\\\\Users\\\\carya\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\Code.exe\",\r\n            \"iconUrl\": \"http://localhost:3000/app-icons/ba0c6617-a4c3-43bc-a176-f2c61d3b88aa.png\"\r\n        },\r\n        {\r\n            \"id\": \"3df47306-4b58-4013-a082-88a927cdd66e\",\r\n            \"name\": \"VS Code\",\r\n            \"executablePath\": \"C:\\\\Users\\\\carya\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\Cde.exe\",\r\n            \"iconUrl\": null\r\n        }\r\n    ]\r\n}",
-    "createdAt": "2026-10-18T11:17:28.562Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "6605923a-753c-421a-a061-4da5bbbb144c",
-    "text": "{\r\n    \"success\": false,\r\n    \"message\": \"Remote launch requires a Windows DeskPilot agent on your laptop\"\r\n}",
-    "createdAt": "2026-10-18T11:16:27.426Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "854a606d-f534-4847-8f7f-c56b67cbe142",
-    "text": "3611a968-a914-4aff-9aef-cf5ece041094",
-    "createdAt": "2026-10-18T11:16:03.789Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "6ebf6a90-8773-414a-98c5-1af2f8d03fdd",
-    "text": "{\r\n    \"success\": false,\r\n    \"message\": \"Application not found\"\r\n}",
-    "createdAt": "2026-10-18T11:15:18.902Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "7f75a33b-e6a6-4f95-8560-009989534741",
-    "text": "http://localhost:3000/api/apps/3453730b-d651-4b11-80a8-c8a334854248/launch",
-    "createdAt": "2026-10-18T11:15:04.250Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "a349b86c-97c8-4e76-93bd-986d86421a50",
-    "text": "{\r\n    \"success\": true,\r\n    \"message\": \"DeskPilot server is Running\",\r\n    \"status\": \"online\",\r\n    \"timestamp\": \"2026-10-18T11:14:30.189Z\"\r\n}",
-    "createdAt": "2026-10-18T11:14:38.072Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "8d1caa30-2f02-4432-8275-81bb97ef3241",
-    "text": "3453730b-d651-4b11-80a8-c8a334854248",
-    "createdAt": "2026-10-18T11:13:52.474Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "b32572b4-cf6a-4889-aa09-046e1581cbd7",
-    "text": "{\r\n  \"name\": \"VS Code\",\r\n  \"executablePath\": \"C:\\\\Users\\\\carya\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\Code.exe\"\r\n}",
-    "createdAt": "2026-10-18T11:13:43.432Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "3313965d-60ef-44fa-880c-d1b86d260a70",
-    "text": "{\r\n    \"success\": false,\r\n    \"message\": \"Remote launch requires a Windows DeskPilot agent on your laptop\"\r\n}",
-    "createdAt": "2026-10-18T11:01:31.366Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "44c663d0-8634-4788-b6ce-9b2e5352305e",
-    "text": "{\r\n  \"name\": \"VS Code\",\r\n  \"executablePath\": \"C:\\\\Users\\\\carya\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\Code.exe\"\r\n}",
-    "createdAt": "2026-10-18T11:01:17.460Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "a7c78499-d984-4a6a-9202-e89559a44e6d",
-    "text": "3453730b-d651-4b11-80a8-c8a334854248",
-    "createdAt": "2026-10-18T11:01:05.939Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "72559240-29e1-4f67-a307-a196a401bf8d",
-    "text": "{\n  \"name\": \"VS Code\",\n  \"executablePath\": \"C:\\\\Users\\\\carya\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\Code.exe\"\n}",
-    "createdAt": "2026-10-18T10:59:09.419Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "008da641-586f-4689-8cac-889fbd553ed8",
-    "text": "\r\nconst { spawn, execFile } = require(\"child_process\");\r\nconst fs = require(\"fs\");\r\nconst path = require(\"path\");\r\nconst crypto = require(\"crypto\");\r\n\r\nconst appsFile = path.join(__dirname, \"../../data/apps.json\");\r\nconst iconsDir = path.join(__dirname, \"../../public/app-icons\");\r\n\r\nfunction readApps() {\r\n  return JSON.parse(fs.readFileSync(appsFile, \"utf8\"));\r\n}\r\n\r\nfunction saveApps(apps) {\r\n  fs.mkdirSync(path.dirname(appsFile), { recursive: true });\r\n  fs.writeFileSync(appsFile, JSON.stringify(apps, null, 2));\r\n}\r\n\r\nfunction extractAppIcon(executablePath, iconFileName) {\r\n  return new Promise((resolve) => {\r\n    if (process.platform !== \"win32\") {\r\n      return resolve(false);\r\n    }\r\n\r\n    const outputPath = path.join(iconsDir, iconFileName);\r\n    fs.mkdirSync(iconsDir, { recursive: true });\r\n\r\n    const script = `\r\n      Add-Type -AssemblyName System.Drawing\r\n      $exe = $env:DESKPILOT_EXE\r\n      $out = $env:DESKPILOT_ICON_OUT\r\n      $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($exe)\r\n\r\n      if ($null -eq $icon) {\r\n        throw \"Icon not found\"\r\n      }\r\n\r\n      $bitmap = $icon.ToBitmap()\r\n      try {\r\n        $bitmap.Save($out, [System.Drawing.Imaging.ImageFormat]::Png)\r\n      }\r\n      finally {\r\n        $bitmap.Dispose()\r\n        $icon.Dispose()\r\n      }\r\n    `;\r\n\r\n    execFile(\r\n      \"powershell.exe\",\r\n      [\"-NoProfile\", \"-NonInteractive\", \"-Command\", script],\r\n      {\r\n        windowsHide: true,\r\n        timeout: 15000,\r\n        env: {\r\n          ...process.env,\r\n          DESKPILOT_EXE: executablePath,\r\n          DESKPILOT_ICON_OUT: outputPath,\r\n        },\r\n      },\r\n      (error, stdout, stderr) => {\r\n        if (error) {\r\n          console.error(\"Icon extraction error:\", error.message);\r\n        }\r\n        if (stderr) console.error(\"Icon extraction stderr:\", stderr);\r\n\r\n        resolve(!error && fs.existsSync(outputPath));\r\n      }\r\n    );\r\n  });\r\n}\r\n\r\nfunction getApps(req, res) {\r\n  try {\r\n    return res.json({ success: true, apps: readApps() });\r\n  } catch (error) {\r\n    console.error(\"Get apps error:\", error.message);\r\n    return res.status(500).json({\r\n      success: false,\r\n      message: \"Could not read applications\",\r\n    });\r\n  }\r\n}\r\n\r\nasync function addApp(req, res) {\r\n  try {\r\n    const { name, executablePath } = req.body || {};\r\n\r\n    if (\r\n      typeof name !== \"string\" ||\r\n      !name.trim() ||\r\n      typeof executablePath !== \"string\" ||\r\n      !path.win32.isAbsolute(executablePath) ||\r\n      path.win32.extname(executablePath).toLowerCase() !== \".exe\"\r\n    ) {\r\n      return res.status(400).json({\r\n        success: false,\r\n        message: \"Valid app name and absolute Windows executable path are required\",\r\n      });\r\n    }\r\n\r\n    const normalizedPath = path.win32.normalize(executablePath);\r\n    const apps = readApps();\r\n\r\n    const app = {\r\n      id: crypto.randomUUID(),\r\n      name: name.trim(),\r\n      executablePath: normalizedPath,\r\n      iconUrl: null,\r\n    };\r\n\r\n    const iconFileName = `${app.id}.png`;\r\n    const extracted = await extractAppIcon(normalizedPath, iconFileName);\r\n\r\n    if (extracted) {\r\n      app.iconUrl = `${req.protocol}://${req.get(\"host\")}/app-icons/${iconFileName}`;\r\n    }\r\n\r\n    apps.push(app);\r\n    saveApps(apps);\r\n\r\n    return res.status(201).json({\r\n      success: true,\r\n      message: \"Application saved\",\r\n      app,\r\n    });\r\n  } catch (error) {\r\n    console.error(\"Add app error:\", error.message);\r\n    return res.status(500).json({\r\n      success: false,\r\n      message: \"Could not save application\",\r\n    });\r\n  }\r\n}\r\n\r\nfunction launchApp(req, res) {\r\n  try {\r\n    const apps = readApps();\r\n    const app = apps.find((item) => item.id === req.params.id);\r\n\r\n    if (!app) {\r\n      return res.status(404).json({\r\n        success: false,\r\n        message: \"Application not found\",\r\n      });\r\n    }\r\n\r\n    // This endpoint can launch apps only on the machine running this process.\r\n    // A Render-hosted process cannot launch an executable on your Windows laptop.\r\n    if (process.platform !== \"win32\") {\r\n      return res.status(501).json({\r\n        success: false,\r\n        message: \"Remote launch requires a Windows DeskPilot agent on your laptop\",\r\n      });\r\n    }\r\n\r\n    if (\r\n      typeof app.executablePath !== \"string\" ||\r\n      !path.win32.isAbsolute(app.executablePath) ||\r\n      path.win32.extname(app.executablePath).toLowerCase() !== \".exe\" ||\r\n      !fs.existsSync(app.executablePath)\r\n    ) {\r\n      return res.status(400).json({\r\n        success: false,\r\n        message: \"Configured executable is invalid or missing on this machine\",\r\n      });\r\n    }\r\n\r\n    const child = spawn(app.executablePath, [], {\r\n      shell: false,\r\n      detached: true,\r\n      stdio: \"ignore\",\r\n      windowsHide: false,\r\n    });\r\n\r\n    child.once(\"error\", (error) => {\r\n      console.error(\"Launch error:\", error.message);\r\n\r\n      if (!res.headersSent) {\r\n        res.status(500).json({\r\n          success: false,\r\n          message: \"Could not launch application\",\r\n        });\r\n      }\r\n    });\r\n\r\n    child.once(\"spawn\", () => {\r\n      if (!res.headersSent) {\r\n        res.status(200).json({\r\n          success: true,\r\n          message: `${app.name} launch requested`,\r\n          app: { id: app.id, name: app.name },\r\n        });\r\n      }\r\n\r\n      child.unref();\r\n    });\r\n  } catch (error) {\r\n    console.error(\"Launch error:\", error.message);\r\n\r\n    if (!res.headersSent) {\r\n      return res.status(500).json({\r\n        success: false,\r\n        message: \"Application launch failed\",\r\n      });\r\n    }\r\n  }\r\n}\r\n\r\nfunction deleteApp(req, res) {\r\n  try {\r\n    const apps = readApps();\r\n    const appIndex = apps.findIndex(\r\n      (item) => item.id === req.params.id\r\n    );\r\n\r\n    if (appIndex === -1) {\r\n      return res.status(404).json({\r\n        success: false,\r\n        message: \"Application not found\",\r\n      });\r\n    }\r\n\r\n    const deletedApp = apps[appIndex];\r\n    apps.splice(appIndex, 1);\r\n    saveApps(apps);\r\n\r\n    if (deletedApp.iconUrl) {\r\n      try {\r\n        const iconFileName = path.basename(\r\n          new URL(deletedApp.iconUrl).pathname\r\n        );\r\n\r\n        if (/^[a-f0-9-]+\\.png$/i.test(iconFileName)) {\r\n          const iconPath = path.join(iconsDir, iconFileName);\r\n\r\n          if (fs.existsSync(iconPath)) {\r\n            fs.unlinkSync(iconPath);\r\n          }\r\n        }\r\n      } catch (iconError) {\r\n        console.error(\"Icon cleanup error:\", iconError.message);\r\n      }\r\n    }\r\n\r\n    return res.json({\r\n      success: true,\r\n      message: \"Application deleted successfully\",\r\n      app: { id: deletedApp.id, name: deletedApp.name },\r\n    });\r\n  } catch (error) {\r\n    console.error(\"Delete error:\", error.message);\r\n    return res.status(500).json({\r\n      success: false,\r\n      message: \"Could not delete application\",\r\n    });\r\n  }\r\n}\r\n\r\nmodule.exports = { getApps, addApp, launchApp, deleteApp };\r\n",
-    "createdAt": "2026-10-18T10:59:01.390Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "8f0062f5-ef22-4dd0-940b-ba0b9d3ceb79",
-    "text": "\r\nconst { spawn, execFile } = require(\"child_process\");\r\nconst fs = require(\"fs\");\r\nconst path = require(\"path\");\r\nconst crypto = require(\"crypto\");\r\n\r\nconst appsFile = path.join(__dirname, \"../../data/apps.json\");\r\nconst iconsDir = path.join(__dirname, \"../../public/app-icons\");\r\n\r\nfunction readApps() {\r\n  return JSON.parse(fs.readFileSync(appsFile, \"utf8\"));\r\n}\r\n\r\nfunction saveApps(apps) {\r\n  fs.writeFileSync(appsFile, JSON.stringify(apps, null, 2));\r\n}\r\n\r\nfunction extractAppIcon(executablePath, iconFileName) {\r\n  return new Promise((resolve) => {\r\n    if (process.platform !== \"win32\") {\r\n      return resolve(false);\r\n    }\r\n\r\n    const outputPath = path.join(iconsDir, iconFileName);\r\n\r\n    console.log(\"Extracting icon:\", executablePath);\r\n    console.log(\"Icon output:\", outputPath);\r\n\r\n    fs.mkdirSync(iconsDir, { recursive: true });\r\n\r\n    const script = `\r\n      Add-Type -AssemblyName System.Drawing\r\n      $exe = $env:DESKPILOT_EXE\r\n      $out = $env:DESKPILOT_ICON_OUT\r\n\r\n      $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($exe)\r\n\r\n      if ($null -eq $icon) {\r\n        throw \"Icon not found\"\r\n      }\r\n\r\n      $bitmap = $icon.ToBitmap()\r\n\r\n      try {\r\n        $bitmap.Save($out, [System.Drawing.Imaging.ImageFormat]::Png)\r\n      }\r\n      finally {\r\n        $bitmap.Dispose()\r\n        $icon.Dispose()\r\n      }\r\n    `;\r\n\r\n    execFile(\r\n      \"powershell.exe\",\r\n      [\"-NoProfile\", \"-NonInteractive\", \"-Command\", script],\r\n      {\r\n        windowsHide: true,\r\n        timeout: 15000,\r\n        env: {\r\n          ...process.env,\r\n          DESKPILOT_EXE: executablePath,\r\n          DESKPILOT_ICON_OUT: outputPath,\r\n        },\r\n      },\r\n      (error, stdout, stderr) => {\r\n        console.log(\"PowerShell error:\", error?.message || \"No error\");\r\n        if (stderr) console.log(\"PowerShell stderr:\", stderr);\r\n\r\n        const exists = fs.existsSync(outputPath);\r\n        console.log(\"PNG exists:\", exists);\r\n\r\n        if (error || !exists) {\r\n          return resolve(false);\r\n        }\r\n\r\n        console.log(\"Icon saved:\", outputPath);\r\n        resolve(true);\r\n      }\r\n    );\r\n  });\r\n}\r\n\r\n\r\n\r\n\r\nfunction getApps(req, res) {\r\n  res.json({ success: true, apps: readApps() });\r\n}\r\n\r\nasync function addApp(req, res) {\r\n  try {\r\n    const { name, executablePath } = req.body;\r\n\r\n    // if (\r\n    //   typeof name !== \"string\" ||\r\n    //   typeof executablePath !== \"string\" ||\r\n    //   !name.trim() ||\r\n    //   !path.isAbsolute(executablePath)\r\n    // ) \r\n\r\n    \r\nif (\r\n  typeof name !== \"string\" ||\r\n  typeof executablePath !== \"string\" ||\r\n  !name.trim() ||\r\n  !path.win32.isAbsolute(executablePath) ||\r\n  path.win32.extname(executablePath).toLowerCase() !== \".exe\"\r\n) {\r\n  return res.status(400).json({\r\n    success: false,\r\n    message: \"Valid app name and absolute Windows executable path are required\",\r\n  });\r\n}\r\n\r\nconst normalizedPath = path.win32.normalize(executablePath);\r\n\r\n    {\r\n      return res.status(400).json({\r\n        success: false,\r\n        message: \"Valid app name and absolute executable path are required\",\r\n      });\r\n    }\r\n\r\n    // const normalizedPath = path.normalize(executablePath);\r\n\r\n    // if (\r\n    //   path.extname(normalizedPath).toLowerCase() !== \".exe\" ||\r\n    //   !fs.existsSync(normalizedPath)\r\n    // )\r\n\r\n    if (\r\n      !path.win32.isAbsolute(executablePath) ||\r\n      path.win32.extname(executablePath).toLowerCase() !== \".exe\"\r\n    ) {\r\n      return res.status(400).json({\r\n        success: false,\r\n        message: \"A valid absolute Windows .exe path is required\",\r\n      });\r\n    }\r\n\r\n    //{\r\n    // return res.status(400).json({\r\n    //   success: false,\r\n    //   message: \"Executable .exe file does not exist\",\r\n    // });\r\n    //}\r\n\r\n    const apps = readApps();\r\n\r\n    const app = {\r\n      id: crypto.randomUUID(),\r\n      name: name.trim(),\r\n      executablePath: normalizedPath,\r\n      iconUrl: null,\r\n    };\r\n\r\n    const iconFileName = `${app.id}.png`;\r\n    const extracted = await extractAppIcon(\r\n      normalizedPath,\r\n      iconFileName\r\n    );\r\n\r\n    if (extracted) {\r\n      // Uses the host/IP from the mobile API request.\r\n      app.iconUrl = `${req.protocol}://${req.get(\"host\")}/app-icons/${iconFileName}`;\r\n    }\r\n\r\n    apps.push(app);\r\n    saveApps(apps);\r\n\r\n    return res.status(201).json({\r\n      success: true,\r\n      message: \"Application saved\",\r\n      app,\r\n    });\r\n  } catch (error) {\r\n    console.error(\"Add app error:\", error.message);\r\n\r\n    return res.status(500).json({\r\n      success: false,\r\n      message: \"Could not save application\",\r\n    });\r\n  }\r\n}\r\n\r\nfunction launchApp(req, res) {\r\n  try {\r\n    const apps = readApps();\r\n    const app = apps.find((item) => item.id === req.params.id);\r\n\r\n    if (!app) {\r\n      return res.status(404).json({\r\n        success: false,\r\n        message: \"Application not found\",\r\n      });\r\n    }\r\n\r\n    if (\r\n      typeof app.executablePath !== \"string\" ||\r\n      !path.isAbsolute(app.executablePath) ||\r\n      path.extname(app.executablePath).toLowerCase() !== \".exe\" ||\r\n      !fs.existsSync(app.executablePath)\r\n    ) {\r\n      return res.status(400).json({\r\n        success: false,\r\n        message: \"Configured executable is invalid or missing\",\r\n      });\r\n    }\r\n\r\n    const child = spawn(app.executablePath, [], {\r\n      shell: false,\r\n      detached: true,\r\n      stdio: \"ignore\",\r\n      windowsHide: false,\r\n    });\r\n\r\n    child.once(\"error\", (error) => {\r\n      console.error(\"Launch error:\", error.message);\r\n\r\n      if (!res.headersSent) {\r\n        res.status(500).json({\r\n          success: false,\r\n          message: \"Could not launch application\",\r\n        });\r\n      }\r\n    });\r\n\r\n    child.once(\"spawn\", () => {\r\n      if (!res.headersSent) {\r\n        res.status(200).json({\r\n          success: true,\r\n          message: `${app.name} launch requested`,\r\n          app: { id: app.id, name: app.name },\r\n        });\r\n      }\r\n\r\n      child.unref();\r\n    });\r\n  } catch (error) {\r\n    console.error(\"Launch error:\", error.message);\r\n\r\n    if (!res.headersSent) {\r\n      res.status(500).json({\r\n        success: false,\r\n        message: \"Application launch failed\",\r\n      });\r\n    }\r\n  }\r\n}\r\n\r\nfunction deleteApp(req, res) {\r\n  try {\r\n    const apps = readApps();\r\n    const appIndex = apps.findIndex(\r\n      (item) => item.id === req.params.id\r\n    );\r\n\r\n    if (appIndex === -1) {\r\n      return res.status(404).json({\r\n        success: false,\r\n        message: \"Application not found\",\r\n      });\r\n    }\r\n\r\n    const deletedApp = apps[appIndex];\r\n\r\n    apps.splice(appIndex, 1);\r\n    saveApps(apps);\r\n\r\n    // Remove the associated icon when the app is deleted.\r\n    if (deletedApp.iconUrl) {\r\n      const iconFileName = path.basename(\r\n        new URL(deletedApp.iconUrl).pathname\r\n      );\r\n\r\n      if (/^[a-f0-9-]+\\.png$/i.test(iconFileName)) {\r\n        const iconPath = path.join(iconsDir, iconFileName);\r\n\r\n        if (fs.existsSync(iconPath)) {\r\n          fs.unlinkSync(iconPath);\r\n        }\r\n      }\r\n    }\r\n\r\n    return res.json({\r\n      success: true,\r\n      message: \"Application deleted successfully\",\r\n      app: { id: deletedApp.id, name: deletedApp.name },\r\n    });\r\n  } catch (error) {\r\n    console.error(\"Delete error:\", error.message);\r\n\r\n    return res.status(500).json({\r\n      success: false,\r\n      message: \"Could not delete application\",\r\n    });\r\n  }\r\n}\r\n\r\nmodule.exports = { getApps, addApp, launchApp, deleteApp };\r\n",
-    "createdAt": "2026-10-18T10:58:26.217Z",
     "source": "Laptop"
   }
 ]
