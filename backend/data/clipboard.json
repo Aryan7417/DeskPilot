@@ -1,5 +1,41 @@
 [
   {
+    "id": "f5e15923-be37-4714-97b0-1cc997d54daf",
+    "text": "b437be23-59a1-4efe-aa2d-2ec24fe989ba",
+    "createdAt": "2026-10-19T07:34:56.565Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "079923c2-56ff-44d3-8214-49b6f54d10fa",
+    "text": "https://deskpilot-259y.onrender.com/api/apps/77a04c90-e948-4e67-91aa-4fec8566f5cb/launch",
+    "createdAt": "2026-10-19T07:33:46.371Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "21550c98-f7e8-4911-9a97-e332fd5a436b",
+    "text": "DeskPilot Windows Agent started.\r\nBackend: https://deskpilot-259y.onrender.com\r\nConfigured apps: 1\r\n\r\n\r\n",
+    "createdAt": "2026-10-19T07:33:05.519Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "abd4937f-d74f-41c6-9bfb-073d383bd668",
+    "text": " https://deskpilot-259y.onrender.com",
+    "createdAt": "2026-10-19T07:32:47.412Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "1ff022db-b951-414e-bd2d-c04f21b60dd2",
+    "text": "\r\nconst { randomUUID } = require(\"crypto\");\r\n\r\nconst commands = new Map();\r\n\r\nfunction enqueueLaunch(app) {\r\n  const command = {\r\n    id: randomUUID(),\r\n    type: \"launch\",\r\n    app: {\r\n      id: app.id,\r\n      name: app.name,\r\n    },\r\n    status: \"pending\",\r\n    createdAt: Date.now(),\r\n  };\r\n\r\n  commands.set(command.id, command);\r\n  return command;\r\n}\r\n\r\nfunction getNextCommand() {\r\n  const now = Date.now();\r\n\r\n  for (const [id, command] of commands) {\r\n    if (now - command.createdAt > 5 * 60 * 1000) {\r\n      commands.delete(id);\r\n      continue;\r\n    }\r\n\r\n    if (command.status === \"pending\") {\r\n      command.status = \"processing\";\r\n      return command;\r\n    }\r\n  }\r\n\r\n  return null;\r\n}\r\n\r\nfunction completeCommand(id, result) {\r\n  const command = commands.get(id);\r\n\r\n  if (!command || command.status !== \"processing\") {\r\n    return false;\r\n  }\r\n\r\n  command.status = result.success ? \"completed\" : \"failed\";\r\n  command.result = {\r\n    success: Boolean(result.success),\r\n    message: String(result.message || \"\").slice(0, 300),\r\n  };\r\n  command.completedAt = Date.now();\r\n\r\n  return true;\r\n}\r\n\r\nmodule.exports = {\r\n  enqueueLaunch,\r\n  getNextCommand,\r\n  completeCommand,\r\n};\r\n",
+    "createdAt": "2026-10-19T07:30:18.466Z",
+    "source": "Laptop"
+  },
+  {
+    "id": "bf2c3ffb-5038-48fd-8af7-dad6e30e7f91",
+    "text": "\n[nodemon] 3.1.14\n[nodemon] to restart at any time, enter `rs`\n[nodemon] watching path(s): *.*\n[nodemon] watching extensions: js,mjs,cjs,json\n[nodemon] starting `node src/server.js`\n◇ injected env (0) from .env\nnode:internal/modules/cjs/loader:1568\n  throw err;\n  ^\n\nError: Cannot find module '../utils/agentQueue'\nRequire stack:\n- /opt/render/project/src/backend/src/controllers/app.controller.js\n- /opt/render/project/src/backend/src/routes/app.routes.js\n- /opt/render/project/src/backend/src/server.js\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)\n    at wrapResolveFilename (node:internal/modules/cjs/loader:1118:27)\n    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1142:10)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1169:12)\n    at Module._load (node:internal/modules/cjs/loader:1341:5)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)\n    at Module.require (node:internal/modules/cjs/loader:1674:12)\n    at require (node:internal/modules/helpers:157:16)\n    at Object.<anonymous> (/opt/render/project/src/backend/src/controllers/app.controller.js:9:27)\n    at Module._compile (node:internal/modules/cjs/loader:1929:14) {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: [\n    '/opt/render/project/src/backend/src/controllers/app.controller.js',\n    '/opt/render/project/src/backend/src/routes/app.routes.js',\n    '/opt/render/project/src/backend/src/server.js'\n  ]\n}\n\nNode.js v24.21.0\n[nodemon] app crashed - waiting for file changes before starting...\n==> No open ports detected, continuing to scan...\n==> Docs on specifying a port: https://render.com/docs/web-services#port-binding\n==> No open ports detected, continuing to scan...\n==> Docs on specifying a port: https://render.com/docs/web-services#port-binding\n==> No open ports detected, continuing to scan...\n==> Docs on specifying a port: https://render.com/docs/web-services#port-binding\n==> No open ports detected, continuing to scan...\n==> Docs on specifying a port: https://render.com/docs/web-services#port-binding\n==> No open ports detected, continuing to scan...\n==> Docs on specifying a port: https://render.com/docs/web-services#port-binding\n==> Port scan timeout reached, no open ports detected. Bind your service to at least one port. If you don't need to receive traffic on any port, create a background worker instead.\n==> Docs on specifying a port: https://render.com/docs/web-services#port-binding",
+    "createdAt": "2026-10-19T07:28:00.040Z",
+    "source": "Laptop"
+  },
+  {
     "id": "09ead7f2-0910-455d-90ac-8d5d819d3c5a",
     "text": "\"start\": \"node src/server.js\",",
     "createdAt": "2026-10-19T07:26:37.011Z",
@@ -261,42 +297,6 @@
     "id": "687b6938-1aa9-4697-953b-4ebd5936c274",
     "text": "b437be23-59a1-4efe-aa2d-2ec24fe989ba",
     "createdAt": "2026-10-19T06:43:52.704Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "3226aeef-74ee-483b-bbaa-eb1aa40377df",
-    "text": "72021b6e-3dde-4ef5-b1c0-cd85eb5a229a",
-    "createdAt": "2026-10-18T18:52:49.150Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "0d19c31a-3e4f-48b2-a192-c224ae1f483f",
-    "text": "curl ascii.live/donut",
-    "createdAt": "2026-10-18T18:46:25.381Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "cd2a066e-573f-4f41-81fd-292832693441",
-    "text": "curl ascii.live/nyan",
-    "createdAt": "2026-10-18T18:46:06.597Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "185a3b07-ed97-4956-acd1-3e9e19eabaac",
-    "text": "curl ascii.live/rick",
-    "createdAt": "2026-10-18T18:45:45.367Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "9da0b73a-d765-405a-a4e0-4c7695384d72",
-    "text": "97fb2cc7-ba56-4752-b920-cefc0a9a80e9",
-    "createdAt": "2026-10-18T18:44:07.666Z",
-    "source": "Laptop"
-  },
-  {
-    "id": "70f41ecc-a4bc-4d73-8fb2-0b68373508e8",
-    "text": "https://deskpilot-259y.onrender.com/health",
-    "createdAt": "2026-10-18T18:43:56.255Z",
     "source": "Laptop"
   }
 ]
